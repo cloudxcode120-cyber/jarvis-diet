@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04101a">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Jarvis Diet">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Jarvis Power Diet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: full-height HUD console. Top bar + tab row, one active view fills the rest; Jarvis orb floats above everything. */
+:root{
+  --bg:#04101a; --panel:#08202e; --panel2:#0b2a3b; --line:#14506b;
+  --cy:#38e8ff; --cyd:#1aa8c4; --gold:#ffb347; --fg:#d6f6ff; --mute:#7fb2c4;
+  --ok:#5dffb0; --bad:#ff7a7a;
+  --cys:rgba(56,232,255,.08); --golds:rgba(255,179,71,.10);
+  --display:'Orbitron','Rajdhani',system-ui,sans-serif;
+  --body:'Rajdhani','Noto Sans Devanagari',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:500 17px/1.45 var(--body);overflow:hidden;
+  background-image:linear-gradient(rgba(56,232,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(56,232,255,.04) 1px,transparent 1px);background-size:32px 32px}
+button,input,textarea{font:inherit;color:inherit}
+#app{height:100%;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);background:rgba(4,16,26,.92)}
+.bar h1{margin:0;font:700 13px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;flex:1;min-width:0}
+.bar .on{font:500 10px var(--display);letter-spacing:.15em;color:var(--ok);display:flex;align-items:center;gap:6px}
+.bar .on::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.nav{display:flex;border-bottom:1px solid var(--line)}
+.nav button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:10px 4px;font:500 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);cursor:pointer;min-width:0}
+.nav button.act{color:var(--cy);border-bottom-color:var(--cy);text-shadow:0 0 10px var(--cy)}
+main{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow:auto;padding:16px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.view.talk{display:flex;flex-direction:column;padding-bottom:0}
+#log{flex:1;overflow:auto;max-width:720px;width:100%;margin:0 auto;padding-bottom:8px}
+#dock{max-width:720px;width:100%;margin:0 auto;padding:10px 0 14px;display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--line)}
+.b{max-width:90%;padding:9px 14px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere;animation:rise .25s ease}
+.b.j{border-left:2px solid var(--cy);background:var(--cys)}
+.b.u{margin-left:auto;border-right:2px solid var(--gold);background:var(--golds);text-align:right}
+.btn,.chip{cursor:pointer;border:1px solid var(--cyd);background:var(--cys);color:var(--fg);padding:10px 16px;
+  font:600 14px var(--display);letter-spacing:.06em;text-transform:uppercase;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+.chip{font:600 16px var(--body);text-transform:none;letter-spacing:0;padding:9px 14px}
+.btn:hover,.chip:hover{background:rgba(56,232,255,.18)}
+.btn.pri{background:var(--cy);color:#02222c;border-color:var(--cy)}
+.chip[aria-pressed=true]{background:var(--cy);color:#02222c}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.inrow{display:flex;gap:8px;width:100%;flex-wrap:wrap}
+input[type=text],input[type=number],textarea{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);padding:10px 12px;color:var(--fg)}
+textarea{width:100%;min-height:70px}
+.err{width:100%;color:var(--bad);font-size:14px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px 16px;min-width:0}
+.eyebrow{font:500 10px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--cy)}
+h2{margin:0;font:700 22px/1.2 var(--display);text-wrap:balance}
+h3{margin:0 0 8px;font:700 13px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+p{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);padding:10px 12px;background:var(--panel2)}
+.stat b{display:block;font:700 22px var(--display);font-variant-numeric:tabular-nums;color:var(--cy)}
+.stat span{font-size:13px;color:var(--mute)}
+.big{cursor:pointer;text-align:left;border:1px solid var(--cyd);background:var(--panel2);padding:16px;display:flex;flex-direction:column;gap:6px;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.big:hover{background:#0f3850}
+.big b{font:700 17px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--cy)}
+.big span{color:var(--mute);font-size:15px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.meals{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.meal{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.meal:last-child{border:0}
+.tm{font:500 12px var(--display);color:var(--gold);width:48px;flex:none;padding-top:3px;font-variant-numeric:tabular-nums}
+.mb{min-width:0;display:flex;flex-direction:column}
+.mb em{font:normal 600 12px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.mb b{font-weight:700;font-size:18px}
+.mb small{color:var(--mute);font-size:14px}
+ul.pts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.tblw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:15px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+th{font:500 10px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px dashed var(--line)}
+.muted{color:var(--mute)}
+svg text{fill:var(--mute);font:11px var(--display)}
+.ln{fill:none;stroke:var(--cy);stroke-width:2}
+.gr{stroke:var(--line);stroke-width:1}
+.dot{fill:var(--gold)}
+/* orb */
+.orb{position:fixed;width:64px;height:64px;z-index:60;cursor:grab;touch-action:none;filter:drop-shadow(0 0 10px var(--cy));transition:left 3s ease-in-out,top 3s ease-in-out;background:none;border:0;padding:0}
+.orb.drag{transition:none;cursor:grabbing}
+.orb[hidden]{display:none}
+.tab{position:fixed;right:0;top:45%;z-index:60;border:1px solid var(--cy);border-right:0;background:var(--panel);color:var(--cy);font:700 12px var(--display);padding:12px 8px;cursor:pointer;writing-mode:vertical-rl;letter-spacing:.2em}
+.panel{position:fixed;right:0;bottom:0;width:min(420px,100%);height:min(72%,540px);z-index:70;background:rgba(4,16,26,.97);border:1px solid var(--cy);display:flex;flex-direction:column;box-shadow:0 0 30px rgba(56,232,255,.25)}
+.panel[hidden]{display:none}
+.panel header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.panel header b{flex:1;font:700 12px var(--display);letter-spacing:.18em}
+.panel header button{background:none;border:1px solid var(--line);padding:4px 10px;cursor:pointer;font-size:13px}
+#olog{flex:1;overflow:auto;padding:8px 12px}
+.panel .inrow{padding:8px 12px;border-top:1px solid var(--line);flex-wrap:nowrap}
+.modal{position:fixed;inset:0;z-index:90;background:rgba(2,8,14,.85);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal[hidden]{display:none}
+.modal .card{max-width:420px;display:flex;flex-direction:column;gap:12px;border-color:var(--cy)}
+#boot{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}
+#boot[hidden]{display:none}
+#boot h1{margin:0;font:900 clamp(22px,6vw,38px)/1.1 var(--display);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 18px var(--cy)}
+#boot p{color:var(--mute);font:500 12px var(--display);letter-spacing:.2em}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:95;background:var(--panel2);border:1px solid var(--cy);padding:8px 16px;font-size:15px;max-width:90%}
+#toast[hidden]{display:none}
+.spin{animation:spin 20s linear infinite;transform-origin:50px 50px}
+.spin2{animation:spin 12s linear infinite reverse;transform-origin:50px 50px}
+.glow{animation:pulse 2.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.45}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head><body>
+<div id="boot">
+  <div id="bootlogo"></div>
+  <h1>Jarvis Power Diet</h1>
+  <p id="bootsub">NUTRITION CORE · STANDBY</p>
+  <button class="btn pri" id="bootbtn" data-act="activate">Activate</button>
+</div>
+
+<div id="app">
+  <div class="bar"><span id="barlogo"></span><h1>Jarvis Power Diet</h1><span class="on" data-k="online">Online</span></div>
+  <nav class="nav">
+    <button data-act="go:home" data-v="home" data-k="home">Home</button>
+    <button data-act="go:plan" data-v="plan" data-k="plan">Plan</button>
+    <button data-act="go:rec" data-v="rec" data-k="rec">Records</button>
+    <button data-act="go:set" data-v="set" data-k="set">Settings</button>
+  </nav>
+  <main>
+    <section class="view" id="v-home"></section>
+    <section class="view talk" id="v-talk" hidden><div id="log" aria-live="polite"></div><div id="dock"></div></section>
+    <section class="view" id="v-plan" hidden></section>
+    <section class="view" id="v-rec" hidden></section>
+    <section class="view" id="v-set" hidden></section>
+  </main>
+</div>
+
+<button class="orb" id="orb" hidden aria-label="Jarvis"></button>
+<button class="tab" id="otab" hidden data-act="orbshow">JARVIS</button>
+<div class="panel" id="panel" hidden>
+  <header><b>JARVIS POWER</b><button data-act="orbclose" data-k="min">Minimise</button><button data-act="orbhide" data-k="hide">Hide</button></header>
+  <div id="olog"></div>
+  <div class="inrow"><input type="text" id="oin" autocomplete="off"><button class="chip" id="omic" hidden>Mic</button><button class="btn pri" id="osend" data-act="osend">Send</button></div>
+</div>
+<div class="modal" id="modal" hidden><div class="card" id="modalbox"></div></div>
+<div id="toast" hidden></div>
+
+<script>
+'use strict';
+/* ===== helpers & state ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const KEY='jpd.v1';
+let memDB=null, storeOK=true;
+const fresh=()=>({profile:null,days:{},weeks:{},settings:{save:true,voice:false,sound:false,mic:false,roam:true},orb:{x:null,y:null,hidden:false}});
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){storeOK=false}return memDB}
+let DB=load()||fresh();
+function save(){memDB=DB;if(DB.settings.save===false)return;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){storeOK=false}}
+const ymd=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d)};
+const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
+const lang=()=>DB.profile?.lang||'hn';
+function sir(){const g=DB.profile?.gender;if(!g)return'';const hi=lang()==='hi';return g==='f'?(hi?'मैम':"Ma'am"):(hi?'सर':'Sir')}
+function ad(){const p=DB.profile;if(!p?.name)return'';return p.name+(sir()?' '+sir():'')}
+function T(o){let s=o[lang()]??o.hn??o.en??'';return s.replaceAll('{n}',ad()).replaceAll('{name}',DB.profile?.name||'')}
+function fmtDate(s,long){const d=new Date(s+'T12:00:00');return d.toLocaleDateString(lang()==='hi'?'hi-IN':'en-IN',long?{weekday:'long',day:'numeric',month:'short'}:{weekday:'short',day:'numeric',month:'short'})}
+let toastT;
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
+
+/* ===== reactor logo ===== */
+function reactor(size){
+  let ticks='';for(let i=0;i<24;i++){const a=i*15*Math.PI/180;ticks+=`<line x1="${50+43*Math.cos(a)}" y1="${50+43*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#38e8ff" stroke-width="1.5"/>`}
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <g class="spin">${ticks}<circle cx="50" cy="50" r="40" fill="none" stroke="#38e8ff" stroke-width="2" stroke-dasharray="14 6"/></g>
+  <g class="spin2"><circle cx="50" cy="50" r="31" fill="none" stroke="#ffb347" stroke-width="1.5" stroke-dasharray="4 5"/></g>
+  <circle cx="50" cy="50" r="24" fill="rgba(56,232,255,.12)" stroke="#38e8ff" stroke-width="2"/>
+  <polygon class="glow" points="50,33 65,59 35,59" fill="rgba(56,232,255,.35)" stroke="#d6f6ff" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="50" cy="50" r="5" fill="#d6f6ff" class="glow"/></svg>`}
+
+/* ===== sound ===== */
+let AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+function tone(f1,f2,dur,type='sine',vol=.05,delay=0){const a=ac();if(!a)return;const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.03)}
+function sfx(k){if(!DB.settings.sound)return;
+  if(k==='click'){tone(1500,2300,.07,'square',.02);tone(700,1100,.09,'sine',.04,.02)}
+  else if(k==='confirm'){tone(600,900,.12,'sine',.05);tone(900,1350,.14,'sine',.05,.1);tone(1350,1800,.2,'sine',.04,.2)}
+  else if(k==='open'){tone(400,1200,.18,'triangle',.05)}
+  else if(k==='err'){tone(320,160,.25,'sawtooth',.04)}
+  else if(k==='boot'){tone(90,1600,.9,'sawtooth',.03);tone(800,1600,.15,'sine',.05,.8);tone(1200,2400,.3,'sine',.04,.95)}}
+document.addEventListener('click',e=>{if(e.target.closest('button'))sfx('click')},true);
+
+/* ===== voice ===== */
+function pickVoice(){const vs=window.speechSynthesis?speechSynthesis.getVoices():[];const pre=lang()==='hi'?'hi':'en';
+  const m=vs.filter(v=>v.lang.toLowerCase().startsWith(pre));
+  return m.find(v=>/male|daniel|david|rishi|hemant|prabhat/i.test(v.name)&&!/female/i.test(v.name))||m[0]||null}
+function speak(text,cancel){if(!DB.settings.voice||!('speechSynthesis' in window))return;
+  try{if(cancel)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/[\u{1F300}-\u{1FAFF}•·→]/gu,' ').slice(0,300));
+    u.lang=lang()==='hi'?'hi-IN':'en-IN';const v=pickVoice();if(v)u.voice=v;u.pitch=.8;u.rate=.98;speechSynthesis.speak(u)}catch(e){}}
+function listen(onText,onErr){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return onErr('unsupported');
+  try{const r=new SR();r.lang=lang()==='en'?'en-IN':'hi-IN';r.onresult=e=>onText(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'error');r.start()}catch(e){onErr(e.name||'error')}}
+const MICFAIL={en:"The microphone is not available in this app window. Please type, I will reply the same way.",hi:"इस ऐप विंडो में माइक्रोफ़ोन उपलब्ध नहीं है। कृपया टाइप करें, मैं उसी तरह जवाब दूँगा।",hn:"Is app window me microphone available nahi hai. Please type karein, main usi tarah jawab dunga."};
+
+/* ===== permission modal ===== */
+function askPermission(q){return new Promise(res=>{const m=$('#modal'),b=$('#modalbox');
+  b.innerHTML=`<div class="eyebrow">${esc(T({en:'Permission needed',hi:'अनुमति चाहिए',hn:'Permission chahiye'}))}</div><p>${esc(T(q))}</p><div class="seg"><button class="btn pri" id="pyes">${esc(T({en:'Allow',hi:'अनुमति दें',hn:'Allow karein'}))}</button><button class="btn" id="pno">${esc(T({en:'Deny',hi:'मना करें',hn:'Deny karein'}))}</button></div>`;
+  m.hidden=false;sfx('open');$('#pyes').onclick=()=>{m.hidden=true;res(true)};$('#pno').onclick=()=>{m.hidden=true;res(false)};$('#pyes').focus()})}
+
+/* ===== food database: id, slot, diet(v/e/n), flags, kcal, protein, qty, unit, en, hi, keywords =====
+ flags: l=light, f=fried/heavy, g=gain-friendly, sw=sugar-heavy, sp=spicy */
+const D=[];
+(function(){const a=(id,s,t,f,k,p,q,u,n,h,kw)=>D.push({id,s,t,f,k,p,q,u,n,h,kw});
+a('b1','b','v','l',300,9,1,'bowl','Poha with peanuts','पोहा मूंगफली के साथ','poha peanut moongfali');
+a('b2','b','v','l',280,10,1,'bowl','Vegetable oats upma','वेज ओट्स उपमा','oats upma');
+a('b3','b','v','l',330,19,2,'pcs','Moong dal chilla with curd','मूंग दाल चीला और दही','moong dal chilla curd dahi dairy');
+a('b4','b','v','fg',420,15,1,'pcs','Paneer paratha with curd','पनीर पराठा और दही','paneer paratha curd dahi dairy');
+a('b5','b','e','',330,20,1,'plate','Egg bhurji with 2 toast','अंडा भुर्जी और 2 टोस्ट','egg anda bhurji toast');
+a('b6','b','v','g sw',380,14,1,'glass','Banana peanut-butter shake','केला पीनट बटर शेक','banana shake peanut butter milk dairy');
+a('b7','b','v','l',280,10,3,'pcs','Idli with sambar','इडली सांभर','idli sambar south');
+a('b8','b','e','',320,19,1,'plate','Vegetable omelette with roti','सब्ज़ी ऑमलेट और रोटी','egg omelette anda roti');
+a('s1','s1','v','l',110,1,1,'bowl','Seasonal fruit bowl','मौसमी फलों का कटोरा','fruit apple papaya banana');
+a('s2','s1','v','',190,9,1,'handful','Roasted chana with nuts','भुना चना और मेवे','chana nuts peanut');
+a('s3','s1','v','l',150,9,1,'bowl','Sprouts with buttermilk','स्प्राउट्स और छाछ','sprouts chaas buttermilk moong dairy');
+a('s4','s1','e','',150,12,2,'pcs','Boiled eggs','उबले अंडे','egg anda boiled');
+a('s5','s1','v','g sw',230,6,1,'handful','Almonds, walnuts and dates','बादाम अखरोट और खजूर','almond badam walnut akhrot dates nuts');
+a('l1','l','v','l',520,20,2,'roti','Dal, sabzi, salad with roti','दाल सब्ज़ी सलाद और रोटी','dal sabzi roti salad');
+a('l2','l','v','sp g',560,18,1,'plate','Rajma chawal','राजमा चावल','rajma rice chawal');
+a('l3','l','v','g',520,26,2,'roti','Paneer bhurji with roti and salad','पनीर भुर्जी रोटी और सलाद','paneer bhurji roti dairy');
+a('l4','l','n','sp',580,38,1,'plate','Chicken curry with rice and salad','चिकन करी चावल और सलाद','chicken curry rice');
+a('l5','l','v','l',380,14,1,'bowl','Vegetable khichdi with curd','सब्ज़ी खिचड़ी और दही','khichdi curd dahi dairy');
+a('l6','l','v','',500,28,1,'plate','Soya chunk pulao with raita','सोया चंक पुलाव और रायता','soya chunks pulao raita dairy');
+a('l7','l','n','sp',540,34,1,'plate','Fish curry with rice','फिश करी चावल','fish curry rice machli');
+a('l8','l','e','sp',500,26,2,'roti','Egg curry with roti','अंडा करी और रोटी','egg curry anda roti');
+a('t1','s2','v','l',120,4,1,'bowl','Roasted makhana with green tea','भुना मखाना और ग्रीन टी','makhana tea');
+a('t2','s2','v','l',160,10,1,'bowl','Sprouts chaat','स्प्राउट्स चाट','sprouts chaat moong');
+a('t3','s2','v','l',170,8,1,'bowl','Curd with fruit','फल के साथ दही','curd dahi fruit dairy');
+a('t4','s2','v','g',230,16,1,'plate','Grilled paneer tikka','ग्रिल्ड पनीर टिक्का','paneer tikka dairy');
+a('t5','s2','n','l',150,15,1,'bowl','Clear chicken soup','क्लियर चिकन सूप','chicken soup');
+a('t6','s2','v','g',260,9,2,'slice','Peanut-butter toast with banana','पीनट बटर टोस्ट और केला','peanut butter toast banana');
+a('d1','d','v','l',420,18,2,'roti','Moong dal soup, sabzi and roti','मूंग दाल सूप सब्ज़ी और रोटी','moong dal soup sabzi roti');
+a('d2','d','v','g',480,22,2,'roti','Palak paneer with roti','पालक पनीर और रोटी','palak paneer spinach roti dairy');
+a('d3','d','n','',450,40,1,'plate','Grilled chicken with sauteed vegetables','ग्रिल्ड चिकन और सब्ज़ियाँ','chicken grilled vegetables');
+a('d4','d','e','l',380,26,1,'plate','Egg-white omelette, veggies and roti','एग-व्हाइट ऑमलेट सब्ज़ी रोटी','egg omelette anda roti');
+a('d5','d','v','',440,24,2,'roti','Soya or tofu stir-fry with roti','सोया या टोफू स्टर-फ्राई और रोटी','soya tofu stir fry roti');
+a('d6','d','v','l',380,14,1,'bowl','Veg dalia (broken wheat) with dal','सब्ज़ी दलिया और दाल','dalia daliya dal');
+a('d7','d','n','',420,36,1,'plate','Fish tikka with salad','फिश टिक्का और सलाद','fish tikka machli salad');
+a('d8','d','v','l',400,16,2,'roti','Lauki sabzi, dal and roti','लौकी सब्ज़ी दाल और रोटी','lauki dal roti');})();
+const DBY=Object.fromEntries(D.map(d=>[d.id,d]));
+const UN={roti:{en:'roti',hi:'रोटी',hn:'roti'},bowl:{en:'bowl',hi:'कटोरी',hn:'bowl'},glass:{en:'glass',hi:'गिलास',hn:'glass'},pcs:{en:'pcs',hi:'पीस',hn:'pcs'},plate:{en:'plate',hi:'प्लेट',hn:'plate'},handful:{en:'handful',hi:'मुट्ठी',hn:'handful'},slice:{en:'slice',hi:'स्लाइस',hn:'slice'}};
+const SL3=[['b',.30,'08:30'],['l',.38,'13:30'],['d',.32,'20:00']];
+const SL5=[['b',.25,'08:00'],['s1',.10,'11:00'],['l',.30,'13:30'],['s2',.10,'17:00'],['d',.25,'20:00']];
+const SLN={b:{en:'Breakfast',hi:'नाश्ता',hn:'Breakfast'},s1:{en:'Mid-morning snack',hi:'सुबह का स्नैक',hn:'Mid-morning snack'},l:{en:'Lunch',hi:'दोपहर का खाना',hn:'Lunch'},s2:{en:'Evening snack',hi:'शाम का स्नैक',hn:'Evening snack'},d:{en:'Dinner',hi:'रात का खाना',hn:'Dinner'}};
+const GOALN={loss:{en:'Weight loss',hi:'वज़न घटाना',hn:'Weight loss'},gain:{en:'Weight gain',hi:'वज़न बढ़ाना',hn:'Weight gain'},muscle:{en:'Build muscle',hi:'मसल बनाना',hn:'Muscle banana'},glow:{en:'Healthy fuller face & body',hi:'सेहतमंद भरा चेहरा और शरीर',hn:'Healthy bhara hua face & body'}};
+const dishName=d=>lang()==='hi'?d.h:d.n;
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rngOf(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const STOP=['none','no','nahi','koi nahi','nothing','kuch bhi','anything','कुछ भी','नहीं','कोई नहीं','skip'];
+function tokens(s){return String(s||'').toLowerCase().split(/[,;\n/]+|\s+(?:and|aur|और)\s+/).map(x=>x.trim()).filter(x=>x.length>=3&&!STOP.includes(x))}
+const kwOf=d=>(d.kw+' '+d.n+' '+d.h).toLowerCase();
+function ctxOf(o){const p=DB.profile,c=p.conds||[];return{diet:p.diet||'v',sugar:c.includes('sugar'),acid:c.includes('acid'),
+  avoid:tokens((p.allergy||'')+','+(o?.avoid||'')),wish:tokens(o?.wishes),light:o?.health==='sick'}}
+function allowed(d,c,relax){if(d.t==='e'&&c.diet==='v')return false;if(d.t==='n'&&c.diet!=='n')return false;
+  if(c.avoid.some(t=>kwOf(d).includes(t)))return false;
+  if(!relax){if(c.sugar&&d.f.includes('sw'))return false;if(c.acid&&d.f.includes('sp'))return false}return true}
+function weightSeries(){const m={},p=DB.profile;if(p?.joined&&p.weight0)m[p.joined]=p.weight0;
+  Object.values(DB.days).forEach(r=>{if(r.weight)m[r.date]=r.weight});Object.values(DB.weeks).forEach(w=>{if(w.weight)m[w.start]=w.weight});
+  return Object.entries(m).map(([d,w])=>({d,w})).sort((a,b)=>a.d<b.d?-1:1)}
+function slope(date){const pts=weightSeries().filter(x=>x.d<=date&&daysBetween(x.d,date)<=28);if(pts.length<2)return null;
+  const f=pts[0],l=pts[pts.length-1],span=daysBetween(f.d,l.d);if(span<5)return null;return(l.w-f.w)/(span/7)}
+function weekPlanFor(date){for(const w of Object.values(DB.weeks)){const i=daysBetween(w.start,date);if(i>=0&&i<7&&w.days?.[i])return w.days[i]}return null}
+const planFor=d=>DB.days[d]?.plan||weekPlanFor(d);
+function recentIds(date,extra){const ids=[...(extra||[])];for(let i=1;i<=3;i++){const p=planFor(addDays(date,-i));if(p)p.meals.forEach(m=>ids.push(m.id))}return ids}
+
+/* targets with adaptation */
+function adjustFor(goal,date){const p=DB.profile,ins=[];if(!p.adj||p.adj.goal!==goal)p.adj={goal,val:0,at:null};
+  const s=slope(date);
+  if(s!=null){const sg=(s>0?'+':'')+s.toFixed(1);
+    ins.push({en:`Weight trend: ${sg} kg per week.`,hi:`वज़न का रुझान: ${sg} किलो प्रति सप्ताह।`,hn:`Weight trend: ${sg} kg per week.`});
+    if(!p.adj.at||daysBetween(p.adj.at,date)>=6){let ch=0;
+      if(goal==='loss'){if(s>-0.1)ch=-120;else if(s<-1)ch=150}else{if(s<0.05)ch=150;else if(s>0.8)ch=-150}
+      if(ch){p.adj.val=clamp(p.adj.val+ch,-400,400);p.adj.at=date;const t=(ch>0?'+':'')+ch;
+        ins.push({en:`Your progress was off target, so I changed calories by ${t}.`,hi:`आपकी प्रगति लक्ष्य से अलग थी, इसलिए कैलोरी ${t} बदली गई।`,hn:`Aapki progress target se alag thi, isliye calories ${t} change ki gayi.`})}}}
+  return{val:p.adj.val,ins}}
+function lowEnergy(date){const r=[1,2,3].map(i=>DB.days[addDays(date,-i)]).filter(x=>x&&x.energy);return r.length>=2&&r.every(x=>x.energy<=2)}
+function targetFor(o){const p=DB.profile,w=o.weight||p.weight,male=p.gender==='m';
+  const bmr=10*w+6.25*p.height-5*p.age+(male?5:-161);
+  const af={low:1.3,mod:1.5,high:1.7}[o.activity||p.activity]||1.4;let t=bmr*af;
+  let delta={loss:-450,gain:400,muscle:300,glow:300}[o.goal]||0;
+  if(p.age<18&&o.goal==='loss')delta=-150;
+  if(o.health==='sick'){t*=.9;delta=Math.min(delta,0)}
+  const a=adjustFor(o.goal,o.date);const ins=[...a.ins];
+  let extra=0;if(lowEnergy(o.date)){extra=100;ins.push({en:'Your energy was low for a few days, so I added 100 kcal.',hi:'कुछ दिनों से आपकी ऊर्जा कम थी, इसलिए 100 कैलोरी जोड़ी।',hn:'Kuch dinon se aapki energy low thi, isliye 100 kcal add ki.'})}
+  const floor=p.age<18?1800:male?1500:1200;
+  const kcal=Math.round(clamp(t+delta+a.val+extra,floor,5000)/10)*10;
+  const pr={loss:1.6,gain:1.4,muscle:1.9,glow:1.3}[o.goal]||1.4;
+  return{kcal,protein:Math.round(w*pr),water:(Math.round(w*35/100)/10).toFixed(1),ins}}
+
+/* pick & portion */
+function pickDish(slot,c,goal,rng,recent,bad){
+  let pool=D.filter(d=>d.s===slot&&allowed(d,c,false));
+  if(c.light){const l=pool.filter(d=>d.f.includes('l'));if(l.length)pool=l}
+  if(!pool.length)pool=D.filter(d=>d.s===slot&&allowed(d,c,true));
+  if(!pool.length)pool=D.filter(d=>d.s===slot);
+  const sc=d=>{let s=rng()*2;if(c.wish.some(t=>kwOf(d).includes(t)))s+=6;if(recent.includes(d.id))s-=5;
+    if(goal==='loss'&&d.f.includes('f'))s-=3;if(goal==='muscle')s+=d.p/d.k*40;
+    if((goal==='gain'||goal==='glow')&&d.f.includes('g'))s+=2.5;if(c.light&&d.f.includes('l'))s+=3;if(bad&&d.f.includes('l'))s+=2;return s};
+  return pool.map(d=>[sc(d),d]).sort((a,b)=>b[0]-a[0])[0][1]}
+function buildMeals(o,kcal,rng,recent){const c=ctxOf(o),slots=o.meals===5?SL5:SL3,used=[...recent],out=[];
+  slots.forEach(([s,share,time])=>{const d=pickDish(s,c,o.goal,rng,used,o.bad);used.push(d.id);c.wish=c.wish.filter(t=>!kwOf(d).includes(t));
+    let v=d.q*clamp(kcal*share/d.k,.5,2.5);v=d.q>=2?Math.max(1,Math.round(v)):Math.max(.5,Math.round(v*2)/2);
+    const m=v/d.q;out.push({slot:s,time,id:d.id,qty:v,k:Math.round(d.k*m),p:Math.round(d.p*m)})});
+  return out}
+const NT={
+ water:w=>({en:`Drink about ${w} L of water through the day.`,hi:`दिन भर में लगभग ${w} लीटर पानी पिएँ।`,hn:`Din bhar me lagbhag ${w} litre paani piyein.`}),
+ loss:{en:'Keep dinner light, walk 30 minutes and avoid sugary drinks.',hi:'रात का खाना हल्का रखें, 30 मिनट टहलें और मीठे पेय से बचें।',hn:'Dinner halka rakhein, 30 minute walk karein aur meethe drinks se bachein.'},
+ gain:{en:'Do not skip meals. Add a glass of milk or a banana if you are still hungry.',hi:'कोई भोजन न छोड़ें। भूख लगे तो दूध या केला लें।',hn:'Koi meal skip na karein. Bhookh lage to doodh ya kela lein.'},
+ muscle:{en:'Eat protein within 1 hour after training and sleep 7-8 hours.',hi:'वर्कआउट के 1 घंटे के अंदर प्रोटीन लें और 7-8 घंटे सोएँ।',hn:'Workout ke 1 ghante ke andar protein lein aur 7-8 ghante soyein.'},
+ glow:{en:'For a healthy, fuller face: steady calories, nuts, fruit, enough water and 7-8 hours of sleep.',hi:'सेहतमंद भरे चेहरे के लिए: नियमित कैलोरी, मेवे, फल, भरपूर पानी और 7-8 घंटे की नींद।',hn:'Healthy bhare hue face ke liye: regular calories, nuts, fruit, bharpoor paani aur 7-8 ghante ki neend.'},
+ sugar:{en:'Diabetes: sweet items are left out. Eat on time and do not skip meals.',hi:'डायबिटीज़: मीठी चीज़ें हटाई गई हैं। समय पर खाएँ और भोजन न छोड़ें।',hn:'Diabetes: meethi cheezein hata di gayi hain. Time par khayein, meal skip na karein.'},
+ bp:{en:'High BP: keep salt low and skip pickle and papad.',hi:'हाई बीपी: नमक कम रखें और अचार-पापड़ से बचें।',hn:'High BP: namak kam rakhein aur achar-papad se bachein.'},
+ acid:{en:'Acidity: spicy dishes are left out. Do not stay hungry for long.',hi:'एसिडिटी: तीखे व्यंजन हटाए गए हैं। ज़्यादा देर भूखे न रहें।',hn:'Acidity: teekhe dishes hata diye gaye hain. Zyada der bhookhe na rahein.'},
+ thyroid:{en:'Thyroid: take your medicine exactly as your doctor advised.',hi:'थायरॉइड: दवा वैसे ही लें जैसे डॉक्टर ने बताया है।',hn:'Thyroid: dawai bilkul waise lein jaise doctor ne batayi hai.'},
+ other:{en:'Please check this plan with your doctor for your health condition.',hi:'अपनी स्वास्थ्य स्थिति के लिए यह प्लान डॉक्टर को दिखाएँ।',hn:'Apni health condition ke liye ye plan doctor ko dikhayein.'},
+ sick:{en:'You are unwell, so I picked light food. If fever or pain lasts beyond 2 days, see a doctor.',hi:'आप अस्वस्थ हैं, इसलिए हल्का खाना चुना है। बुखार या दर्द 2 दिन से ज़्यादा रहे तो डॉक्टर को दिखाएँ।',hn:'Aap unwell hain, isliye halka khana chuna hai. Fever ya dard 2 din se zyada rahe to doctor ko dikhayein.'},
+ sleep:{en:'You slept under 6 hours. Try to sleep earlier tonight.',hi:'आप 6 घंटे से कम सोए। आज रात जल्दी सोने की कोशिश करें।',hn:'Aap 6 ghante se kam soye. Aaj raat jaldi sone ki koshish karein.'},
+ minor:{en:'You are under 18: stay in a healthy range and talk to a doctor before any weight loss.',hi:'आप 18 से कम उम्र के हैं: स्वस्थ सीमा में रहें और वज़न घटाने से पहले डॉक्टर से बात करें।',hn:'Aap 18 se kam age ke hain: healthy range me rahein aur weight loss se pehle doctor se baat karein.'},
+ disc:{en:'This is general guidance, not medical advice.',hi:'यह सामान्य मार्गदर्शन है, चिकित्सीय सलाह नहीं।',hn:'Ye general guidance hai, medical advice nahi.'}};
+function notesFor(o,pl){const p=DB.profile,c=p.conds||[],n=[NT.water(pl.water),NT[o.goal]];
+  ['sugar','bp','acid','thyroid','other'].forEach(k=>{if(c.includes(k))n.push(NT[k])});
+  if(o.health==='sick')n.push(NT.sick);if(o.sleep&&o.sleep<6)n.push(NT.sleep);if(p.age<18)n.push(NT.minor);
+  const miss=tokens(o.wishes).filter(t=>!D.some(d=>kwOf(d).includes(t))).slice(0,2);
+  miss.forEach(t=>n.push({en:`"${t}" is not in my food list yet, so I picked close options.`,hi:`"${t}" अभी मेरी खाने की सूची में नहीं है, इसलिए मिलते-जुलते विकल्प चुने।`,hn:`"${t}" abhi meri food list me nahi hai, isliye milte-julte options chune.`}));
+  n.push(NT.disc);return n}
+function genPlan(o,tg,rng,recent){const meals=buildMeals(o,tg.kcal,rng,recent);
+  const pl={date:o.date,goal:o.goal,target:tg.kcal,protein:tg.protein,water:tg.water,meals,total:meals.reduce((a,m)=>a+m.k,0),got:meals.reduce((a,m)=>a+m.p,0)};
+  pl.notes=notesFor(o,pl);return pl}
+
+/* ===== console: say / ask ===== */
+const LBL={online:{en:'Online',hi:'ऑनलाइन',hn:'Online'},home:{en:'Home',hi:'होम',hn:'Home'},plan:{en:'Plan',hi:'प्लान',hn:'Plan'},rec:{en:'Records',hi:'रिकॉर्ड',hn:'Records'},set:{en:'Settings',hi:'सेटिंग्स',hn:'Settings'},min:{en:'Minimise',hi:'छोटा करें',hn:'Minimise'},hide:{en:'Hide',hi:'छुपाएँ',hn:'Hide'}};
+const X={ok:{en:'OK',hi:'ठीक है',hn:'OK'},skip:{en:'Skip',hi:'छोड़ें',hn:'Skip'},conf:{en:'Confirm',hi:'पक्का करें',hn:'Confirm karein'}};
+let FID=0,pending=null;
+function bubble(who,text,box){const b=document.createElement('div');b.className='b '+who;b.textContent=text;(box||$('#log')).appendChild(b);(box||$('#log')).scrollTop=1e9;return b}
+async function say(o){const t=typeof o==='string'?o:T(o);bubble('j',t);speak(t);sfx('open');await sleep(350)}
+function abortFlow(){if(pending){pending.rej('abort');pending=null}}
+async function runFlow(fn){abortFlow();const id=++FID;try{await fn(id)}catch(e){if(e!=='abort')console.error(e)}}
+async function ask(c){const id=FID;await say(c.q);if(id!==FID)throw'abort';
+  return new Promise((res,rej)=>{pending={rej};const dock=$('#dock');dock.innerHTML='';
+    const done=(v,label)=>{pending=null;try{speechSynthesis.cancel()}catch(e){}bubble('u',label);dock.innerHTML='';sfx('confirm');res(v)};
+    if(c.type==='choice'){c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.textContent=T(o.l);b.onclick=()=>done(o.v,T(o.l));dock.appendChild(b)});return}
+    if(c.type==='multi'){const sel=new Set();c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed','false');b.textContent=T(o.l);
+      b.onclick=()=>{if(sel.has(o.v)){sel.delete(o.v)}else{if(o.x)sel.clear();else c.opts.filter(z=>z.x).forEach(z=>sel.delete(z.v));sel.add(o.v)}
+        $$('.chip',dock).forEach((e,i)=>e.setAttribute('aria-pressed',sel.has(c.opts[i].v)))};dock.appendChild(b)});
+      const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.conf);
+      ok.onclick=()=>done([...sel],[...sel].map(v=>T(c.opts.find(o=>o.v===v).l)).join(', ')||'-');dock.appendChild(ok);return}
+    const row=document.createElement('div');row.className='inrow';const inp=document.createElement('input');
+    const num=c.type==='num';inp.type=num?'number':'text';if(num){inp.inputMode='decimal';inp.step='any'}inp.placeholder=c.ph?T(c.ph):'';inp.autocomplete='off';
+    const err=document.createElement('div');err.className='err';err.hidden=true;
+    const go=()=>{const raw=inp.value.trim();if(!raw){if(c.skip)return done(null,T(X.skip));return}
+      if(num){const v=parseFloat(raw.replace(',','.'));if(isNaN(v)||v<c.min||v>c.max){err.textContent=T({en:`Please enter a number between ${c.min} and ${c.max}.`,hi:`कृपया ${c.min} से ${c.max} के बीच संख्या लिखें।`,hn:`Please ${c.min} se ${c.max} ke beech number likhein.`});err.hidden=false;sfx('err');return}done(v,String(v))}else done(raw.slice(0,120),raw.slice(0,120))};
+    inp.onkeydown=e=>{if(e.key==='Enter')go()};const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.ok);ok.onclick=go;row.append(inp,ok);
+    if(!num&&DB.settings.mic){const m=document.createElement('button');m.className='chip';m.textContent='Mic';m.onclick=()=>listen(t=>{inp.value=t},()=>toast(T(MICFAIL)));row.appendChild(m)}
+    if(c.skip){const s=document.createElement('button');s.className='chip';s.textContent=T(X.skip);s.onclick=()=>done(null,T(X.skip));row.appendChild(s)}
+    dock.append(row,err);inp.focus()})}
+const opt=(v,en,hi,hn,x)=>({v,x,l:{en,hi,hn:hn??en}});
+const GOALOPTS=()=>['loss','gain','muscle','glow'].map(g=>({v:g,l:GOALN[g]}));
+const MEALOPTS=[opt(3,'3 meals','3 भोजन','3 meals'),opt(5,'5 meals (with snacks)','5 भोजन (स्नैक्स के साथ)','5 meals (snacks ke saath)')];
+const greetObj=()=>{const h=new Date().getHours(),i=h<12?0:h<17?1:2,e=['morning','afternoon','evening'][i];
+  return{en:`Good ${e}, {n}.`,hi:`${['सुप्रभात','नमस्कार','शुभ संध्या'][i]}, {n}।`,hn:`Good ${e}, {n}.`}};
+function clearLog(){$('#log').innerHTML='';$('#dock').innerHTML=''}
+
+/* ===== onboarding ===== */
+async function onboard(){
+  go('talk');clearLog();DB.profile={};
+  await say({hn:'Namaste! Main Jarvis Power hoon, aapka personal diet assistant.\nHello! I am Jarvis Power, your personal diet assistant.'});
+  const name=await ask({type:'text',q:{hn:'Sabse pehle, aapka naam kya hai?\nFirst, what should I call you?'},ph:{hn:'Naam / Name'}});
+  DB.profile={name};
+  const g=await ask({type:'choice',q:{hn:`Welcome, ${name}! Aap male hain ya female?\nAre you male or female?`},opts:[opt('m','Male / पुरुष'),opt('f','Female / महिला')]});
+  DB.profile.gender=g;
+  const lg=await ask({type:'choice',q:{hn:'Kis bhasha me baat karein?\nWhich language should we use?'},opts:[opt('hi','हिंदी'),opt('en','English'),opt('hn','Hinglish (Hindi + English)')]});
+  DB.profile.lang=lg;
+  const pm=await ask({type:'multi',q:{en:'{n}, I need your permission before I use anything on this device. Choose what I may use.',hi:'{n}, इस डिवाइस पर कुछ भी इस्तेमाल करने से पहले मुझे आपकी अनुमति चाहिए। चुनिए, मैं क्या इस्तेमाल कर सकता हूँ।',hn:'{n}, is device par kuch bhi use karne se pehle mujhe aapki permission chahiye. Chuniye, main kya use kar sakta hoon.'},
+    opts:[opt('save','Save my data on this device','मेरा डेटा इसी डिवाइस पर सहेजें','Mera data isi device par save karein'),opt('voice','Jarvis voice (speak replies)','जार्विस की आवाज़ (जवाब बोलकर)','Jarvis ki awaaz (jawab bolkar)'),opt('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects'),opt('mic','Microphone (talk to me)','माइक्रोफ़ोन (मुझसे बात करें)','Microphone (mujhse baat karein)')]});
+  Object.assign(DB.settings,{save:pm.includes('save'),voice:pm.includes('voice'),sound:pm.includes('sound'),mic:pm.includes('mic'),roam:true});
+  if(DB.settings.sound)sfx('boot');
+  await say({en:'Understood. I will use only what you allowed.',hi:'समझ गया। मैं सिर्फ़ वही इस्तेमाल करूँगा जिसकी आपने अनुमति दी है।',hn:'Samajh gaya. Main sirf wahi use karunga jiski aapne permission di hai.'});
+  if(DB.settings.voice)speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}));
+  const P=DB.profile;
+  P.age=await ask({type:'num',min:12,max:100,q:{en:'How old are you? (years)',hi:'आपकी उम्र कितनी है? (साल)',hn:'Aapki age kitni hai? (saal)'}});
+  P.height=await ask({type:'num',min:120,max:230,q:{en:'Your height in cm?',hi:'आपकी लंबाई कितनी है? (सेमी)',hn:'Aapki height kitni hai? (cm)'}});
+  P.weight=await ask({type:'num',min:25,max:250,q:{en:'Your current weight in kg?',hi:'आपका वज़न कितना है? (किलो)',hn:'Aapka abhi ka weight kitna hai? (kg)'}});
+  P.weight0=P.weight;P.joined=ymd();
+  P.activity=await ask({type:'choice',q:{en:'How active are you?',hi:'आप कितने सक्रिय हैं?',hn:'Aap kitne active hain?'},opts:[
+    opt('low','Low (desk job, little walking)','कम (बैठकर काम, कम चलना)','Low (baith ke kaam, kam chalna)'),opt('mod','Moderate (walk or exercise 3-4 days)','मध्यम (हफ्ते में 3-4 दिन वॉक/व्यायाम)','Moderate (hafte me 3-4 din walk/exercise)'),opt('high','High (hard exercise most days)','ज़्यादा (लगभग रोज़ कड़ी कसरत)','High (lagbhag roz hard exercise)')]});
+  P.diet=await ask({type:'choice',q:{en:'What do you eat?',hi:'आप क्या खाते हैं?',hn:'Aap kya khate hain?'},opts:[opt('v','Veg','शाकाहारी','Veg'),opt('e','Veg + Egg','शाकाहारी + अंडा','Veg + Egg'),opt('n','Non-veg','नॉन-वेज','Non-veg')]});
+  P.conds=(await ask({type:'multi',q:{en:'Any health condition? Choose all that apply.',hi:'कोई स्वास्थ्य समस्या? जो लागू हों सब चुनें।',hn:'Koi health problem? Jo lagu ho sab chunein.'},opts:[
+    opt('none','None','कोई नहीं','Koi nahi',true),opt('sugar','Diabetes / sugar','डायबिटीज़ / शुगर','Diabetes / sugar'),opt('bp','High BP','हाई बीपी','High BP'),opt('acid','Acidity / gas','एसिडिटी / गैस','Acidity / gas'),opt('thyroid','Thyroid','थायरॉइड','Thyroid'),opt('other','Something else','कुछ और','Kuch aur')]})).filter(x=>x!=='none');
+  P.allergy=(await ask({type:'text',skip:true,q:{en:'Any food allergy, or foods you never eat? (type, or skip)',hi:'कोई एलर्जी या ऐसा खाना जो आप नहीं खाते? (लिखें या छोड़ें)',hn:'Koi food allergy ya aisa khana jo aap nahi khate? (likhein ya skip)'}}))||'';
+  P.done=true;save();
+  await say({en:'Profile saved, {n}. Now choose Daily or Weekly diet.',hi:'प्रोफ़ाइल सहेज ली गई, {n}। अब डेली या वीकली डाइट चुनिए।',hn:'Profile save ho gayi, {n}. Ab Daily ya Weekly diet chuniye.'});
+  applyStatic();orbInit();go('home')}
+
+/* ===== daily ===== */
+async function dailyFlow(){
+  const P=DB.profile,today=ymd(),prev=addDays(today,-1);go('talk');clearLog();
+  await say(greetObj());
+  await say({en:'Let us do your daily check-in.',hi:'चलिए आपका डेली चेक-इन करते हैं।',hn:'Chaliye aapka daily check-in karte hain.'});
+  let bad=false;const py=DB.days[prev];
+  if(py?.plan&&py.adherence==null){py.adherence=await ask({type:'choice',q:{en:"Did you follow yesterday's plan?",hi:'क्या आपने कल का प्लान फ़ॉलो किया?',hn:'Kya aapne kal ka plan follow kiya?'},opts:[opt('full','Yes, fully','हाँ, पूरा','Haan, poora'),opt('part','Partly','थोड़ा-बहुत','Thoda-bahut'),opt('none','No','नहीं','Nahi')]});save();bad=py.adherence==='none'}
+  const health=await ask({type:'choice',q:{en:'How is your health today?',hi:'आज आपकी तबीयत कैसी है?',hn:'Aaj aapki tabiyat kaisi hai?'},opts:[opt('great','Great','बहुत बढ़िया','Great'),opt('ok','Okay','ठीक-ठाक','Okay'),opt('tired','Tired','थका हुआ','Tired'),opt('sick','Unwell (fever, cold, stomach)','तबीयत ख़राब (बुखार, सर्दी, पेट)','Unwell (fever, cold, stomach)')]});
+  const goal=await ask({type:'choice',q:{en:'What is your diet for today? Choose your goal.',hi:'आज की डाइट किस लिए बनानी है? लक्ष्य चुनिए।',hn:'Aaj ki diet kis liye banani hai? Goal chuniye.'},opts:GOALOPTS()});
+  const weight=await ask({type:'num',min:25,max:250,skip:true,q:{en:'Your weight today in kg? (or skip)',hi:'आज आपका वज़न कितना है? (किलो, या छोड़ें)',hn:'Aaj aapka weight kitna hai? (kg, ya skip)'}});
+  const sleepH=await ask({type:'num',min:0,max:16,skip:true,q:{en:'How many hours did you sleep last night?',hi:'कल रात आप कितने घंटे सोए?',hn:'Kal raat aap kitne ghante soye?'}});
+  const water=await ask({type:'num',min:0,max:30,skip:true,q:{en:'How many glasses of water did you drink yesterday?',hi:'कल आपने कितने गिलास पानी पिया?',hn:'Kal aapne kitne glass paani piya?'}});
+  const energy=await ask({type:'choice',q:{en:'Your energy level?',hi:'आपकी ऊर्जा का स्तर?',hn:'Aapki energy level?'},opts:[opt(1,'1 - Very low','1 - बहुत कम','1 - Bahut low'),opt(2,'2 - Low','2 - कम','2 - Low'),opt(3,'3 - Normal','3 - सामान्य','3 - Normal'),opt(4,'4 - Good','4 - अच्छी','4 - Good'),opt(5,'5 - Excellent','5 - शानदार','5 - Excellent')]});
+  const symptoms=await ask({type:'text',skip:true,q:{en:'Any pain or symptom today? (type, or skip)',hi:'आज कोई दर्द या लक्षण? (लिखें या छोड़ें)',hn:'Aaj koi dard ya symptom? (likhein ya skip)'}});
+  const wishes=await ask({type:'text',skip:true,q:{en:'What would you like to eat today? e.g. paneer, rajma, or "anything".',hi:'आज क्या खाना है? जैसे पनीर, राजमा, या "कुछ भी"।',hn:'Aaj kya khana hai? Jaise paneer, rajma, ya "kuch bhi".'}});
+  const meals=await ask({type:'choice',q:{en:'How many meals today?',hi:'आज कितने भोजन?',hn:'Aaj kitne meals?'},opts:MEALOPTS});
+  const rec=DB.days[today]||(DB.days[today]={date:today});
+  Object.assign(rec,{goal,health,weight:weight||null,sleep:sleepH,water,energy,symptoms,wishes,meals});
+  if(weight)P.weight=weight;
+  await say({en:'Building your plan now.',hi:'अब आपका प्लान बना रहा हूँ।',hn:'Ab aapka plan bana raha hoon.'});
+  const o={date:today,goal,weight:weight||P.weight,health,wishes:wishes||'',meals,sleep:sleepH,bad};
+  const tg=targetFor(o),rng=rngOf(hash(today+P.name+goal+(wishes||'')));
+  const pl=genPlan(o,tg,rng,recentIds(today));
+  if(bad)tg.ins.push({en:'Yesterday was off-plan. No problem, today is a fresh start.',hi:'कल प्लान से हटना हुआ। कोई बात नहीं, आज नई शुरुआत है।',hn:'Kal plan se hatna hua. Koi baat nahi, aaj nayi shuruaat hai.'});
+  pl.insights=tg.ins;rec.plan=pl;P.lastGoal=goal;save();
+  await say({en:`Your plan is ready: about ${pl.target} kcal and ${pl.protein} g protein.`,hi:`आपका प्लान तैयार है: लगभग ${pl.target} कैलोरी और ${pl.protein} ग्राम प्रोटीन।`,hn:`Aapka plan ready hai: lagbhag ${pl.target} kcal aur ${pl.protein} g protein.`});
+  sfx('confirm');PV='day';go('plan')}
+
+/* ===== weekly ===== */
+async function weeklyFlow(){
+  const P=DB.profile,today=ymd();go('talk');clearLog();
+  await say(greetObj());
+  await say({en:'Let us plan your whole week.',hi:'चलिए आपका पूरा हफ़्ता प्लान करते हैं।',hn:'Chaliye aapka poora hafta plan karte hain.'});
+  const keys=Object.keys(DB.weeks).filter(k=>k<today).sort(),lastK=keys[keys.length-1],lw=lastK&&DB.weeks[lastK];let bad=false;
+  if(lw&&!lw.feedback){lw.feedback=await ask({type:'choice',q:{en:'How did last week go?',hi:'पिछला हफ़्ता कैसा रहा?',hn:'Pichla hafta kaisa raha?'},opts:[opt('great','Great','बहुत बढ़िया','Great'),opt('ok','Okay','ठीक-ठाक','Okay'),opt('bad','Hard to follow','फ़ॉलो करना मुश्किल रहा','Follow karna mushkil raha')]});bad=lw.feedback==='bad'}
+  else if(lw?.feedback==='bad')bad=true;
+  const goal=await ask({type:'choice',q:{en:'What is this week\'s diet for? Choose your goal.',hi:'इस हफ़्ते की डाइट किस लिए बनानी है? लक्ष्य चुनिए।',hn:'Is hafte ki diet kis liye banani hai? Goal chuniye.'},opts:GOALOPTS()});
+  const weight=await ask({type:'num',min:25,max:250,skip:true,q:{en:'Your weight now in kg? (or skip)',hi:'अभी आपका वज़न कितना है? (किलो, या छोड़ें)',hn:'Abhi aapka weight kitna hai? (kg, ya skip)'}});
+  const act=await ask({type:'choice',q:{en:'How many days will you exercise this week?',hi:'इस हफ़्ते कितने दिन कसरत करेंगे?',hn:'Is hafte kitne din exercise karenge?'},opts:[opt('low','0-2 days','0-2 दिन','0-2 din'),opt('mod','3-4 days','3-4 दिन','3-4 din'),opt('high','5-7 days','5-7 दिन','5-7 din')]});
+  const symptoms=await ask({type:'text',skip:true,q:{en:'Any health issue this week? (type, or skip)',hi:'इस हफ़्ते कोई स्वास्थ्य समस्या? (लिखें या छोड़ें)',hn:'Is hafte koi health issue? (likhein ya skip)'}});
+  const wishes=await ask({type:'text',skip:true,q:{en:'Foods you want this week? e.g. paneer, rajma, chicken.',hi:'इस हफ़्ते कौन सा खाना चाहिए? जैसे पनीर, राजमा, चिकन।',hn:'Is hafte kaun sa khana chahiye? Jaise paneer, rajma, chicken.'}});
+  const avoid=await ask({type:'text',skip:true,q:{en:'Foods to avoid this week? (type, or skip)',hi:'इस हफ़्ते कौन सा खाना नहीं चाहिए? (लिखें या छोड़ें)',hn:'Is hafte kaun sa khana nahi chahiye? (likhein ya skip)'}});
+  const meals=await ask({type:'choice',q:{en:'How many meals per day?',hi:'रोज़ कितने भोजन?',hn:'Roz kitne meals?'},opts:MEALOPTS});
+  await say({en:'Building your 7-day plan.',hi:'आपका 7 दिन का प्लान बना रहा हूँ।',hn:'Aapka 7 din ka plan bana raha hoon.'});
+  if(weight)P.weight=weight;
+  const w={start:today,goal,weight:weight||null,activity:act,symptoms,wishes,avoid,meals,days:[],feedback:null};
+  const used=[...recentIds(today)];let insights=null;
+  for(let i=0;i<7;i++){const date=addDays(today,i);
+    const o={date,goal,weight:weight||P.weight,activity:act,health:(symptoms&&i===0)?'ok':'ok',wishes:wishes||'',avoid:avoid||'',meals,bad};
+    const tg=targetFor(o);if(!insights)insights=tg.ins;
+    const pl=genPlan(o,tg,rngOf(hash(date+P.name+goal)),used.slice(-6));pl.meals.forEach(m=>used.push(m.id));pl.insights=i===0?insights:[];w.days.push(pl)}
+  if(bad)insights.push({en:'Last week was hard, so this week favours simpler, lighter meals.',hi:'पिछला हफ़्ता मुश्किल रहा, इसलिए इस हफ़्ते सरल और हल्के भोजन रखे हैं।',hn:'Pichla hafta mushkil raha, isliye is hafte simple aur halke meals rakhe hain.'});
+  if(symptoms)w.days[0].notes.splice(1,0,NT.other);
+  DB.weeks[today]=w;P.lastGoal=goal;save();
+  const avg=Math.round(w.days.reduce((a,d)=>a+d.target,0)/7);
+  await say({en:`Your week is ready: about ${avg} kcal per day.`,hi:`आपका हफ़्ता तैयार है: रोज़ लगभग ${avg} कैलोरी।`,hn:`Aapka hafta ready hai: roz lagbhag ${avg} kcal.`});
+  sfx('confirm');PV='week';WSEL=0;go('plan')}
+
+/* ===== views ===== */
+let view='home',PV='day',WSEL=0;
+function go(v){view=v;$$('.view').forEach(e=>e.hidden=e.id!=='v-'+v);$$('.nav button').forEach(b=>b.classList.toggle('act',b.dataset.v===v));
+  ({home:renderHome,plan:renderPlan,rec:renderRec,set:renderSet}[v]||(()=>{}))()}
+function applyStatic(){$$('[data-k]').forEach(e=>e.textContent=T(LBL[e.dataset.k]));document.documentElement.lang=lang()==='hi'?'hi':'en';
+  $('#oin').placeholder=T({en:'Ask Jarvis...',hi:'जार्विस से पूछें...',hn:'Jarvis se poochein...'});
+  $('#osend').textContent=T({en:'Send',hi:'भेजें',hn:'Send'});$('#omic').hidden=!DB.settings.mic}
+const todayPlan=()=>planFor(ymd());
+function streak(){let n=0,d=ymd();if(!DB.days[d])d=addDays(d,-1);while(DB.days[d]){n++;d=addDays(d,-1)}return n}
+const TIPS=[{en:'Protein at every meal keeps hunger steady.',hi:'हर भोजन में प्रोटीन रखने से भूख संतुलित रहती है।',hn:'Har meal me protein rakhne se bhookh balanced rehti hai.'},
+ {en:'Drink a glass of water before each meal.',hi:'हर भोजन से पहले एक गिलास पानी पिएँ।',hn:'Har meal se pehle ek glass paani piyein.'},
+ {en:'Weigh yourself at the same time each morning.',hi:'रोज़ सुबह एक ही समय पर वज़न करें।',hn:'Roz subah ek hi time par weight karein.'},
+ {en:'A 10-minute walk after dinner helps digestion.',hi:'रात के खाने के बाद 10 मिनट टहलना पाचन में मदद करता है।',hn:'Dinner ke baad 10 minute walk digestion me madad karti hai.'},
+ {en:'Sleep 7-8 hours. Poor sleep raises hunger.',hi:'7-8 घंटे सोएँ। कम नींद से भूख बढ़ती है।',hn:'7-8 ghante soyein. Kam neend se bhookh badhti hai.'}];
+function renderHome(){const P=DB.profile,tp=todayPlan(),ws=weightSeries(),lw=ws.length?ws[ws.length-1].w:P.weight,doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5);
+  const goalK=P.lastGoal?T(GOALN[P.lastGoal]):'-';
+  $('#v-home').innerHTML=`<div class="wrap">
+  <div class="card"><div class="eyebrow">${esc(T({en:'Jarvis online',hi:'जार्विस ऑनलाइन',hn:'Jarvis online'}))}</div><h2>${esc(T(greetObj()))}</h2><p class="muted" style="margin-top:6px">${esc(T(TIPS[doy%TIPS.length]))}</p></div>
+  <div class="grid2">
+   <button class="big" data-act="daily"><b>${esc(T({en:'Daily diet',hi:'डेली डाइट',hn:'Daily diet'}))}</b><span>${esc(T({en:'Answer today\'s questions and get today\'s plan.',hi:'आज के सवालों के जवाब दें और आज का प्लान पाएँ।',hn:'Aaj ke sawalon ke jawab dein aur aaj ka plan paayein.'}))}</span></button>
+   <button class="big" data-act="weekly"><b>${esc(T({en:'Weekly diet',hi:'वीकली डाइट',hn:'Weekly diet'}))}</b><span>${esc(T({en:'Plan all 7 days at once.',hi:'पूरे 7 दिन एक साथ प्लान करें।',hn:'Poore 7 din ek saath plan karein.'}))}</span></button></div>
+  <div class="stats">
+   <div class="stat"><b>${lw}</b><span>${esc(T({en:'Weight (kg)',hi:'वज़न (किलो)',hn:'Weight (kg)'}))}</span></div>
+   <div class="stat"><b>${tp?tp.target:'-'}</b><span>${esc(T({en:'Today kcal',hi:'आज की कैलोरी',hn:'Aaj ki kcal'}))}</span></div>
+   <div class="stat"><b>${streak()}</b><span>${esc(T({en:'Check-in streak',hi:'चेक-इन स्ट्रीक',hn:'Check-in streak'}))}</span></div></div>
+  <div class="card"><div class="row" style="border:0;padding:0"><span class="muted">${esc(T({en:'Last goal',hi:'पिछला लक्ष्य',hn:'Last goal'}))}</span><b>${esc(goalK)}</b></div></div>
+  ${tp?`<button class="btn" data-act="go:plan">${esc(T({en:'View today\'s plan',hi:'आज का प्लान देखें',hn:'Aaj ka plan dekhein'}))}</button>`:''}</div>`}
+
+function planHTML(pl){if(!pl)return'';
+  const meals=pl.meals.map(m=>{const d=DBY[m.id],q=fq(m.qty);return`<li class="meal"><span class="tm">${m.time}</span><div class="mb"><em>${esc(T(SLN[m.slot]))}</em><b>${esc(dishName(d))}</b><small>${q} ${esc(T(UN[d.u]))} · ${m.k} kcal · ${m.p} g ${esc(T({en:'protein',hi:'प्रोटीन',hn:'protein'}))}</small></div></li>`}).join('');
+  const ins=(pl.insights||[]).map(i=>`<li>${esc(T(i))}</li>`).join('');
+  return`<div class="card"><div class="eyebrow">${esc(fmtDate(pl.date,true))} · ${esc(T(GOALN[pl.goal]))}</div>
+   <div class="stats" style="margin:10px 0"><div class="stat"><b>${pl.target}</b><span>${esc(T({en:'Target kcal',hi:'लक्ष्य कैलोरी',hn:'Target kcal'}))}</span></div><div class="stat"><b>${pl.protein} g</b><span>${esc(T({en:'Protein goal',hi:'प्रोटीन लक्ष्य',hn:'Protein goal'}))}</span></div><div class="stat"><b>${pl.water} L</b><span>${esc(T({en:'Water',hi:'पानी',hn:'Water'}))}</span></div></div>
+   <ul class="meals">${meals}</ul>
+   <p class="muted" style="margin-top:8px">${esc(T({en:'Planned total',hi:'योजना का कुल',hn:'Planned total'}))}: ${pl.total} kcal · ${pl.got} g ${esc(T({en:'protein',hi:'प्रोटीन',hn:'protein'}))}</p></div>
+   ${ins?`<div class="card"><h3>${esc(T({en:'Jarvis insights',hi:'जार्विस इनसाइट्स',hn:'Jarvis insights'}))}</h3><ul class="pts">${ins}</ul></div>`:''}
+   <div class="card"><h3>${esc(T({en:'Notes',hi:'ध्यान रखें',hn:'Dhyan rakhein'}))}</h3><ul class="pts">${pl.notes.map(n=>`<li>${esc(T(n))}</li>`).join('')}</ul></div>`}
+function fq(v){const w=Math.floor(v),h=v-w>=.5;return((w?w:'')+(h?'½':''))||'½'}
+function curWeek(){const k=Object.keys(DB.weeks).sort(),t=ymd();let c=null;k.forEach(s=>{if(s<=t)c=s});return DB.weeks[c||k[k.length-1]]}
+function renderPlan(){const v=$('#v-plan'),tp=planFor(ymd()),w=curWeek();
+  let body='';
+  if(PV==='day'){body=tp?planHTML(tp):emptyPlan()}
+  else if(!w){body=emptyPlan()}
+  else{WSEL=clamp(WSEL,0,6);const chips=w.days.map((d,i)=>`<button class="chip" aria-pressed="${i===WSEL}" data-act="wd:${i}">${esc(fmtDate(d.date))}</button>`).join('');
+    const avg=Math.round(w.days.reduce((a,d)=>a+d.target,0)/7);
+    body=`<div class="card"><div class="eyebrow">${esc(T({en:'Weekly plan',hi:'साप्ताहिक प्लान',hn:'Weekly plan'}))}</div><p class="muted">${esc(T({en:`Average ${avg} kcal per day`,hi:`औसत ${avg} कैलोरी प्रतिदिन`,hn:`Average ${avg} kcal per din`}))}</p></div><div class="seg">${chips}</div>${planHTML(w.days[WSEL])}`}
+  v.innerHTML=`<div class="wrap"><div class="seg"><button class="chip" aria-pressed="${PV==='day'}" data-act="pv:day">${esc(T({en:'Today',hi:'आज',hn:'Aaj'}))}</button><button class="chip" aria-pressed="${PV==='week'}" data-act="pv:week">${esc(T({en:'This week',hi:'यह हफ़्ता',hn:'Is hafte'}))}</button></div>${body}</div>`}
+function emptyPlan(){return`<div class="card"><h2>${esc(T({en:'No plan yet',hi:'अभी कोई प्लान नहीं',hn:'Abhi koi plan nahi'}))}</h2><p class="muted" style="margin:8px 0 12px">${esc(T({en:'Start a check-in and Jarvis will build one.',hi:'चेक-इन शुरू करें, जार्विस प्लान बना देगा।',hn:'Check-in shuru karein, Jarvis plan bana dega.'}))}</p><div class="seg"><button class="btn pri" data-act="daily">${esc(T({en:'Daily diet',hi:'डेली डाइट',hn:'Daily diet'}))}</button><button class="btn" data-act="weekly">${esc(T({en:'Weekly diet',hi:'वीकली डाइट',hn:'Weekly diet'}))}</button></div></div>`}
+
+function chartSVG(pts){if(pts.length<2)return`<p class="muted">${esc(T({en:'Add your weight in two or more check-ins to see the trend.',hi:'ट्रेंड देखने के लिए दो या अधिक चेक-इन में वज़न लिखें।',hn:'Trend dekhne ke liye do ya zyada check-in me weight likhein.'}))}</p>`;
+  const W=340,H=160,L=38,R=12,Tp=12,B=26,ws=pts.map(p=>p.w);let lo=Math.min(...ws),hi=Math.max(...ws);if(hi-lo<1){lo-=.5;hi+=.5}lo=Math.floor(lo);hi=Math.ceil(hi);
+  const t0=new Date(pts[0].d).getTime(),t1=new Date(pts[pts.length-1].d).getTime()||1,sx=t=>L+(t1===t0?0:(t-t0)/(t1-t0))*(W-L-R),sy=w=>Tp+(hi-w)/(hi-lo)*(H-Tp-B);
+  const line=pts.map((p,i)=>(i?'L':'M')+sx(new Date(p.d).getTime()).toFixed(1)+' '+sy(p.w).toFixed(1)).join(' ');
+  const mid=(lo+hi)/2;
+  return`<div class="tblw"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:300px" role="img" aria-label="weight chart">
+   ${[lo,mid,hi].map(v=>`<line class="gr" x1="${L}" x2="${W-R}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${L-6}" y="${sy(v)+4}" text-anchor="end">${v}</text>`).join('')}
+   <path class="ln" d="${line}"/>${pts.map(p=>`<circle class="dot" cx="${sx(new Date(p.d).getTime()).toFixed(1)}" cy="${sy(p.w).toFixed(1)}" r="3.5"/>`).join('')}
+   <text x="${L}" y="${H-6}">${esc(fmtDate(pts[0].d))}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${esc(fmtDate(pts[pts.length-1].d))}</text></svg></div>`}
+function renderRec(){const rows=Object.values(DB.days).sort((a,b)=>a.date<b.date?1:-1);
+  const adh={full:{en:'Yes',hi:'हाँ',hn:'Haan'},part:{en:'Partly',hi:'थोड़ा',hn:'Thoda'},none:{en:'No',hi:'नहीं',hn:'Nahi'}};
+  const th=['Date,तारीख,Date','Goal,लक्ष्य,Goal','kg,किलो,kg','kcal,कैलोरी,kcal','Energy,ऊर्जा,Energy','Followed,फ़ॉलो,Followed'].map(s=>{const[a,b,c]=s.split(',');return`<th>${esc(T({en:a,hi:b,hn:c}))}</th>`}).join('');
+  const tb=rows.map(r=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.goal?T(GOALN[r.goal]):'-')}</td><td>${r.weight??'-'}</td><td>${r.plan?.target??'-'}</td><td>${r.energy??'-'}</td><td>${r.adherence?esc(T(adh[r.adherence])):'-'}</td></tr>`).join('');
+  const ws=Object.values(DB.weeks).sort((a,b)=>a.start<b.start?1:-1).map(w=>`<div class="row"><span>${esc(fmtDate(w.start))}</span><span>${esc(T(GOALN[w.goal]))}</span><span class="muted">${w.feedback?esc(T({great:{en:'Great',hi:'बढ़िया',hn:'Great'},ok:{en:'Okay',hi:'ठीक',hn:'Okay'},bad:{en:'Hard',hi:'मुश्किल',hn:'Mushkil'}}[w.feedback])):'-'}</span></div>`).join('');
+  $('#v-rec').innerHTML=`<div class="wrap"><div class="card"><h3>${esc(T({en:'Weight trend',hi:'वज़न का रुझान',hn:'Weight trend'}))}</h3>${chartSVG(weightSeries())}</div>
+   <div class="card"><h3>${esc(T({en:'Daily records',hi:'डेली रिकॉर्ड',hn:'Daily records'}))}</h3>${rows.length?`<div class="tblw"><table><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table></div>`:`<p class="muted">${esc(T({en:'No check-ins yet.',hi:'अभी कोई चेक-इन नहीं।',hn:'Abhi koi check-in nahi.'}))}</p>`}</div>
+   ${ws?`<div class="card"><h3>${esc(T({en:'Weeks',hi:'हफ़्ते',hn:'Weeks'}))}</h3>${ws}</div>`:''}</div>`}
+
+function b64e(s){const u=new TextEncoder().encode(s);let o='';for(let i=0;i<u.length;i+=8192)o+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(o)}
+function b64d(s){const b=atob(s.trim()),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new TextDecoder().decode(u)}
+function renderSet(){const P=DB.profile,S=DB.settings;
+  const tg=(k,en,hi,hn)=>`<div class="row"><span>${esc(T({en,hi,hn}))}</span><button class="chip" aria-pressed="${!!S[k]}" data-act="tog:${k}">${S[k]?'ON':'OFF'}</button></div>`;
+  const lg=['hi','en','hn'].map(l=>`<button class="chip" aria-pressed="${P.lang===l}" data-act="lang:${l}">${{hi:'हिंदी',en:'English',hn:'Hinglish'}[l]}</button>`).join('');
+  const gd=[['m',{en:'Male',hi:'पुरुष',hn:'Male'}],['f',{en:'Female',hi:'महिला',hn:'Female'}]].map(([g,l])=>`<button class="chip" aria-pressed="${P.gender===g}" data-act="gender:${g}">${esc(T(l))}</button>`).join('');
+  $('#v-set').innerHTML=`<div class="wrap">
+  ${!storeOK||S.save===false?`<div class="card" style="border-color:var(--gold)"><p>${esc(T({en:'Your data is not being saved on this device. It will be lost when you close the app.',hi:'आपका डेटा इस डिवाइस पर सहेजा नहीं जा रहा। ऐप बंद करने पर मिट जाएगा।',hn:'Aapka data is device par save nahi ho raha. App band karne par mit jayega.'}))}</p></div>`:''}
+  <div class="card"><h3>${esc(T({en:'Profile',hi:'प्रोफ़ाइल',hn:'Profile'}))}</h3>
+   <div class="inrow" style="margin-bottom:10px"><input type="text" id="sname" value="${esc(P.name)}" maxlength="30" aria-label="name"><button class="btn" data-act="savename">${esc(T({en:'Save name',hi:'नाम सहेजें',hn:'Name save'}))}</button></div>
+   <div class="seg" style="margin-bottom:10px">${gd}</div><div class="seg">${lg}</div></div>
+  <div class="card"><h3>${esc(T({en:'Permissions',hi:'अनुमतियाँ',hn:'Permissions'}))}</h3>
+   ${tg('save','Save data on this device','डेटा इसी डिवाइस पर सहेजें','Data isi device par save karein')}${tg('voice','Jarvis voice','जार्विस की आवाज़','Jarvis ki awaaz')}${tg('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects')}${tg('mic','Microphone','माइक्रोफ़ोन','Microphone')}${tg('roam','Jarvis moves around on its own','जार्विस अपने आप घूमे','Jarvis apne aap ghoome')}
+   <div class="row" style="border:0"><span>${esc(T({en:'Jarvis orb',hi:'जार्विस ऑर्ब',hn:'Jarvis orb'}))}</span><button class="chip" data-act="${DB.orb.hidden?'orbshow':'orbhide'}">${esc(DB.orb.hidden?T({en:'Show',hi:'दिखाएँ',hn:'Show'}):T({en:'Hide',hi:'छुपाएँ',hn:'Hide'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Backup',hi:'बैकअप',hn:'Backup'}))}</h3><p class="muted" style="margin-bottom:8px">${esc(T({en:'Your data stays only in this browser. Copy the backup code to move it to another device.',hi:'आपका डेटा सिर्फ़ इसी ब्राउज़र में रहता है। दूसरे डिवाइस पर ले जाने के लिए बैकअप कोड कॉपी करें।',hn:'Aapka data sirf isi browser me rehta hai. Dusre device par le jaane ke liye backup code copy karein.'}))}</p>
+   <div class="seg" style="margin-bottom:8px"><button class="btn" data-act="bkcopy">${esc(T({en:'Copy backup code',hi:'बैकअप कोड कॉपी करें',hn:'Backup code copy karein'}))}</button></div>
+   <textarea id="bkin" placeholder="${esc(T({en:'Paste a backup code here',hi:'यहाँ बैकअप कोड पेस्ट करें',hn:'Yahan backup code paste karein'}))}"></textarea>
+   <div class="seg" style="margin-top:8px"><button class="btn" data-act="bkrestore">${esc(T({en:'Restore',hi:'रीस्टोर',hn:'Restore'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Erase everything',hi:'सब मिटाएँ',hn:'Sab mitayein'}))}</h3><div class="seg" id="erase"><button class="btn bad" data-act="erase1">${esc(T({en:'Erase all my data',hi:'मेरा सारा डेटा मिटाएँ',hn:'Mera sara data mitayein'}))}</button></div></div></div>`}
+
+/* ===== Jarvis orb ===== */
+const orb=$('#orb');let panelOpen=false,lastTouch=0,dragging=false;
+function orbPos(x,y){const m=8,maxx=innerWidth-64-m,maxy=innerHeight-64-m;orb.style.left=clamp(x,m,maxx)+'px';orb.style.top=clamp(y,m+60,maxy)+'px'}
+function orbInit(){orb.innerHTML=reactor(64);orb.hidden=!!DB.orb.hidden||!DB.profile?.done;$('#otab').hidden=!DB.orb.hidden||!DB.profile?.done;
+  orbPos(DB.orb.x??innerWidth-80,DB.orb.y??innerHeight-150)}
+let dsx,dsy,dox,doy,moved;
+orb.addEventListener('pointerdown',e=>{dragging=true;moved=false;dsx=e.clientX;dsy=e.clientY;const r=orb.getBoundingClientRect();dox=r.left;doy=r.top;orb.classList.add('drag');orb.setPointerCapture(e.pointerId)});
+orb.addEventListener('pointermove',e=>{if(!dragging)return;if(Math.abs(e.clientX-dsx)+Math.abs(e.clientY-dsy)>6)moved=true;if(moved)orbPos(dox+e.clientX-dsx,doy+e.clientY-dsy)});
+orb.addEventListener('pointerup',()=>{dragging=false;orb.classList.remove('drag');lastTouch=Date.now();
+  if(moved){const r=orb.getBoundingClientRect();DB.orb.x=r.left;DB.orb.y=r.top;save()}else togglePanel()});
+setInterval(()=>{if(!DB.settings.roam||DB.orb.hidden||panelOpen||dragging||!DB.profile?.done||Date.now()-lastTouch<9000||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  orbPos(Math.random()*(innerWidth-80),70+Math.random()*(innerHeight-170))},22000);
+addEventListener('resize',()=>{if(!orb.hidden)orbPos(parseFloat(orb.style.left)||0,parseFloat(orb.style.top)||0)});
+function togglePanel(force){panelOpen=force??!panelOpen;$('#panel').hidden=!panelOpen;sfx('open');
+  if(panelOpen&&!$('#olog').children.length){const t=T({en:'Yes, {n}? Ask me anything about food and health, or say "daily" or "weekly".',hi:'जी, {n}? खाने और सेहत के बारे में कुछ भी पूछिए, या "डेली" / "वीकली" कहिए।',hn:'Ji, {n}? Khane aur health ke baare me kuch bhi poochiye, ya "daily" / "weekly" boliye.'});bubble('j',t,$('#olog'));speak(t,true)}
+  if(panelOpen)$('#oin').focus()}
+function hideOrb(){DB.orb.hidden=true;orb.hidden=true;$('#otab').hidden=false;togglePanel(false);save();if(view==='set')renderSet()}
+function showOrb(){DB.orb.hidden=false;orb.hidden=false;$('#otab').hidden=true;save();if(view==='set')renderSet()}
+
+/* ===== Jarvis answers ===== */
+function suggestDish(){const h=new Date().getHours(),s=h<10?'b':h<12?'s1':h<15?'l':h<18?'s2':'d',c=ctxOf({});
+  const pool=D.filter(d=>d.s===s&&allowed(d,c,false));const d=pool[Math.floor(Math.random()*pool.length)]||D.find(x=>x.s===s);return d}
+const R={
+ greet:{en:'Hello, {n}! How can I help?',hi:'नमस्ते, {n}! मैं कैसे मदद करूँ?',hn:'Namaste, {n}! Main kaise madad karun?'},
+ who:{en:'I am Jarvis Power, your diet assistant inside Jarvis Power Diet.',hi:'मैं जार्विस पावर हूँ, जार्विस पावर डाइट में आपका डाइट असिस्टेंट।',hn:'Main Jarvis Power hoon, Jarvis Power Diet me aapka diet assistant.'},
+ name:{en:'Your name is {name}.',hi:'आपका नाम {name} है।',hn:'Aapka naam {name} hai.'},
+ protein:{en:'Aim for about 1.4 to 1.9 g of protein per kg of body weight. Dal, paneer, eggs, soya, curd and chicken are good sources.',hi:'शरीर के वज़न के हिसाब से लगभग 1.4 से 1.9 ग्राम प्रोटीन प्रति किलो लें। दाल, पनीर, अंडा, सोया, दही और चिकन अच्छे स्रोत हैं।',hn:'Body weight ke hisaab se lagbhag 1.4 se 1.9 g protein per kg lein. Dal, paneer, egg, soya, curd aur chicken achhe source hain.'},
+ water:{en:'Drink about 35 ml of water per kg of body weight each day, a little more in summer or after exercise.',hi:'रोज़ शरीर के वज़न के हिसाब से लगभग 35 मिलीलीटर प्रति किलो पानी पिएँ, गर्मी या कसरत के बाद थोड़ा ज़्यादा।',hn:'Roz body weight ke hisaab se lagbhag 35 ml per kg paani piyein, garmi ya exercise ke baad thoda zyada.'},
+ loss:{en:'For weight loss: a small calorie deficit, protein at every meal, a daily walk and 7-8 hours of sleep. Avoid crash diets.',hi:'वज़न घटाने के लिए: थोड़ी कम कैलोरी, हर भोजन में प्रोटीन, रोज़ टहलना और 7-8 घंटे की नींद। क्रैश डाइट से बचें।',hn:'Weight loss ke liye: thodi kam calories, har meal me protein, roz walk aur 7-8 ghante ki neend. Crash diet se bachein.'},
+ gain:{en:'For weight gain: eat a little above your needs, do not skip meals, add nuts, milk, banana and paneer.',hi:'वज़न बढ़ाने के लिए: ज़रूरत से थोड़ा ज़्यादा खाएँ, भोजन न छोड़ें, मेवे, दूध, केला और पनीर जोड़ें।',hn:'Weight gain ke liye: zaroorat se thoda zyada khayein, meal skip na karein, nuts, doodh, kela aur paneer add karein.'},
+ muscle:{en:'For muscle: 1.6 to 2 g protein per kg, strength training 3-4 days a week, and enough sleep.',hi:'मसल के लिए: 1.6 से 2 ग्राम प्रोटीन प्रति किलो, हफ़्ते में 3-4 दिन स्ट्रेंथ ट्रेनिंग और पूरी नींद।',hn:'Muscle ke liye: 1.6 se 2 g protein per kg, hafte me 3-4 din strength training aur poori neend.'},
+ glow:{en:'For a healthy, fuller face and body: steady calories, healthy fats like nuts, fruit, enough water and good sleep.',hi:'सेहतमंद भरे चेहरे और शरीर के लिए: नियमित कैलोरी, मेवे जैसे अच्छे फैट, फल, भरपूर पानी और अच्छी नींद।',hn:'Healthy bhare hue face aur body ke liye: regular calories, nuts jaise healthy fats, fruit, bharpoor paani aur achhi neend.'},
+ sleep:{en:'Sleep 7-8 hours. Poor sleep increases hunger and slows progress.',hi:'7-8 घंटे सोएँ। कम नींद से भूख बढ़ती है और प्रगति धीमी होती है।',hn:'7-8 ghante soyein. Kam neend se bhookh badhti hai aur progress slow hoti hai.'},
+ time:()=>{const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});return{en:`It is ${t}.`,hi:`अभी ${t} हुए हैं।`,hn:`Abhi ${t} hue hain.`}},
+ thanks:{en:'Always at your service, {n}.',hi:'हमेशा आपकी सेवा में, {n}।',hn:'Hamesha aapki seva me, {n}.'},
+ dflt:{en:'I did not get that. Try asking about protein, water, weight loss, weight gain, muscle, sleep, or "what should I eat". You can also say "daily" or "weekly".',hi:'मैं समझ नहीं पाया। प्रोटीन, पानी, वज़न घटाना, वज़न बढ़ाना, मसल, नींद या "क्या खाऊँ" पूछिए। "डेली" या "वीकली" भी कह सकते हैं।',hn:'Main samajh nahi paya. Protein, paani, weight loss, weight gain, muscle, neend ya "kya khaun" poochiye. "Daily" ya "weekly" bhi bol sakte hain.'}};
+function reply(t){t=t.toLowerCase();const m=r=>r.test(t);
+  if(m(/hide|chup|chhup|band kar|hatao|छुप|हटाओ/)){hideOrb();return null}
+  if(m(/weekly|week|hafte|haftey|वीकली|साप्ताहिक|हफ़्ते|हफ्ते/)){go('talk');runFlow(weeklyFlow);return{en:'Starting the weekly plan.',hi:'वीकली प्लान शुरू कर रहा हूँ।',hn:'Weekly plan shuru kar raha hoon.'}}
+  if(m(/daily|aaj ka|डेली|आज का/)){go('talk');runFlow(dailyFlow);return{en:'Starting your daily check-in.',hi:'डेली चेक-इन शुरू कर रहा हूँ।',hn:'Daily check-in shuru kar raha hoon.'}}
+  if(m(/show.*plan|plan dikh|plan dekh|प्लान दिखा|प्लान देख/)){go('plan');return{en:'Here is your plan.',hi:'यह रहा आपका प्लान।',hn:'Ye raha aapka plan.'}}
+  if(m(/kya kha|what.*eat|hungry|bhookh|भूख|क्या खा/)){const d=suggestDish();return{en:`Try: ${d.n} (about ${d.k} kcal).`,hi:`यह आज़माइए: ${d.h} (लगभग ${d.k} कैलोरी)।`,hn:`Ye try karein: ${d.n} (lagbhag ${d.k} kcal).`}}
+  if(m(/who are you|tum kaun|aap kaun|कौन हो|कौन हैं/))return R.who;
+  if(m(/(mera|my) (naam|name)|मेरा नाम/))return R.name;
+  if(m(/protein|प्रोटीन/))return R.protein;
+  if(m(/water|pani|paani|पानी/))return R.water;
+  if(m(/muscle|gym|bodybuild|मसल/))return R.muscle;
+  if(m(/face|chehra|glow|skin|चेहरा|त्वचा|bhara|भरा/))return R.glow;
+  if(m(/gain|badhana|vajan badh|weight badh|dubla|वज़न बढ़|वजन बढ़|दुबला/))return R.gain;
+  if(m(/loss|lose|patla|kam karna|vajan kam|fat|mota|motapa|वज़न घट|वजन घट|मोटा/))return R.loss;
+  if(m(/sleep|neend|नींद/))return R.sleep;
+  if(m(/time|samay|baje|समय/))return R.time();
+  if(m(/thank|shukriya|dhanyavaad|धन्यवाद|शुक्रिया/))return R.thanks;
+  if(m(/\b(hi|hello|hey|hii)\b|namaste|नमस्ते/))return R.greet;
+  return R.dflt}
+function osend(){const i=$('#oin'),t=i.value.trim();if(!t)return;i.value='';bubble('u',t,$('#olog'));const r=reply(t);
+  if(r){const s=T(r);bubble('j',s,$('#olog'));speak(s,true)}}
+$('#oin').addEventListener('keydown',e=>{if(e.key==='Enter')osend()});
+$('#omic').addEventListener('click',()=>listen(t=>{$('#oin').value=t;osend()},()=>{const s=T(MICFAIL);bubble('j',s,$('#olog'))}));
+
+/* ===== actions ===== */
+async function toggleSetting(k){const S=DB.settings;
+  if(!S[k]){const q={save:{en:'Allow Jarvis to save your data on this device?',hi:'क्या जार्विस आपका डेटा इस डिवाइस पर सहेज सकता है?',hn:'Kya Jarvis aapka data is device par save kar sakta hai?'},voice:{en:'Allow Jarvis to speak replies aloud?',hi:'क्या जार्विस जवाब बोलकर सुना सकता है?',hn:'Kya Jarvis jawab bolkar suna sakta hai?'},sound:{en:'Allow Jarvis sound effects?',hi:'क्या जार्विस साउंड इफ़ेक्ट्स चला सकता है?',hn:'Kya Jarvis sound effects chala sakta hai?'},mic:{en:'Allow Jarvis to try using your microphone?',hi:'क्या जार्विस आपका माइक्रोफ़ोन इस्तेमाल करने की कोशिश कर सकता है?',hn:'Kya Jarvis aapka microphone use karne ki koshish kar sakta hai?'},roam:{en:'Allow Jarvis to move around the screen on its own?',hi:'क्या जार्विस स्क्रीन पर अपने आप घूम सकता है?',hn:'Kya Jarvis screen par apne aap ghoom sakta hai?'}}[k];
+    if(!await askPermission(q))return;S[k]=true;if(k==='sound')sfx('confirm');if(k==='voice')speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}),true)}
+  else S[k]=false;
+  save();applyStatic();renderSet()}
+function act(a,b){const[k,v]=a.split(':');
+  switch(k){
+   case'activate':return activate();
+   case'go':return go(v);
+   case'daily':return runFlow(dailyFlow);
+   case'weekly':return runFlow(weeklyFlow);
+   case'pv':PV=v;return renderPlan();
+   case'wd':WSEL=+v;return renderPlan();
+   case'tog':return toggleSetting(v);
+   case'lang':DB.profile.lang=v;save();applyStatic();return renderSet();
+   case'gender':DB.profile.gender=v;save();return renderSet();
+   case'savename':{const n=$('#sname').value.trim().slice(0,30);if(n){DB.profile.name=n;save();toast(T({en:'Name saved.',hi:'नाम सहेजा गया।',hn:'Name save ho gaya.'}))}return}
+   case'orbshow':return showOrb();
+   case'orbhide':return hideOrb();
+   case'orbclose':return togglePanel(false);
+   case'osend':return osend();
+   case'bkcopy':{const code=b64e(JSON.stringify(DB));const ta=$('#bkin');ta.value=code;ta.select();
+     (navigator.clipboard?.writeText(code)||Promise.reject()).then(()=>toast(T({en:'Backup code copied.',hi:'बैकअप कोड कॉपी हुआ।',hn:'Backup code copy ho gaya.'}))).catch(()=>toast(T({en:'Select the code above and copy it.',hi:'ऊपर का कोड चुनकर कॉपी करें।',hn:'Upar ka code select karke copy karein.'})));return}
+   case'bkrestore':{try{const o=JSON.parse(b64d($('#bkin').value));if(!o.profile||!o.days||!o.settings)throw 0;DB=o;save();applyStatic();orbInit();go('home');toast(T({en:'Backup restored.',hi:'बैकअप रीस्टोर हुआ।',hn:'Backup restore ho gaya.'}))}catch(e){sfx('err');toast(T({en:'That backup code is not valid.',hi:'यह बैकअप कोड सही नहीं है।',hn:'Ye backup code sahi nahi hai.'}))}return}
+   case'erase1':$('#erase').innerHTML=`<button class="btn bad" data-act="erase2">${esc(T({en:'Yes, erase everything',hi:'हाँ, सब मिटाएँ',hn:'Haan, sab mitayein'}))}</button><button class="btn" data-act="go:set">${esc(T({en:'Cancel',hi:'रद्द करें',hn:'Cancel'}))}</button>`;return;
+   case'erase2':{abortFlow();try{localStorage.removeItem(KEY)}catch(e){}DB=fresh();memDB=null;$('#olog').innerHTML='';applyStatic();orbInit();boot();return}}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)act(b.dataset.act,b)});
+
+/* ===== boot ===== */
+function boot(){$('#boot').hidden=false;$('#bootbtn').textContent=DB.profile?.done?T({en:'Activate',hi:'सक्रिय करें',hn:'Activate'}):'Activate'}
+async function activate(){ac();sfx('boot');$('#boot').hidden=true;
+  if(DB.profile?.done){applyStatic();orbInit();go('home');
+    const t=T({en:'Welcome back, {n}. Systems online. What shall we plan today?',hi:'वापसी पर स्वागत है, {n}। सिस्टम चालू हैं। आज क्या प्लान करें?',hn:'Welcome back, {n}. Systems online hain. Aaj kya plan karein?'});
+    speak(t,true);toast(t)}
+  else{applyStatic();runFlow(onboard)}}
+$('#bootlogo').innerHTML=reactor(150);$('#barlogo').innerHTML=reactor(28);
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{};
+applyStatic();orbInit();if(DB.profile?.done)go("home");boot();
+</script>
+
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body></html>
