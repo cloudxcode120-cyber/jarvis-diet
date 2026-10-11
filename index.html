@@ -91,7 +91,7 @@ svg text{fill:var(--mute);font:11px var(--display)}
 .gr{stroke:var(--line);stroke-width:1}
 .dot{fill:var(--gold)}
 /* orb */
-.orb{position:fixed;width:64px;height:64px;z-index:60;cursor:grab;touch-action:none;filter:drop-shadow(0 0 10px var(--cy));transition:left 3s ease-in-out,top 3s ease-in-out;background:none;border:0;padding:0}
+.orb{position:fixed;width:72px;height:72px;z-index:60;cursor:grab;touch-action:none;filter:drop-shadow(0 0 10px var(--cy));transition:left 3s ease-in-out,top 3s ease-in-out;background:none;border:0;padding:0}
 .orb.drag{transition:none;cursor:grabbing}
 .orb[hidden]{display:none}
 .tab{position:fixed;right:0;top:45%;z-index:60;border:1px solid var(--cy);border-right:0;background:var(--panel);color:var(--cy);font:700 12px var(--display);padding:12px 8px;cursor:pointer;writing-mode:vertical-rl;letter-spacing:.2em}
@@ -117,6 +117,15 @@ svg text{fill:var(--mute);font:11px var(--display)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{50%{opacity:.45}}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.blink{animation:blink 4.5s infinite;transform-box:fill-box;transform-origin:center}
+.mouth{transform-box:fill-box;transform-origin:center}
+.speaking .mouth{animation:talk .22s ease-in-out infinite alternate}
+.speaking .orb{filter:drop-shadow(0 0 18px var(--cy))}
+#pav{display:inline-flex}
+.chip.rec,.btn.rec{background:var(--bad);color:#2a0505;border-color:var(--bad)}
+select{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);padding:10px 12px;color:var(--fg)}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes talk{from{transform:scaleY(.6)}to{transform:scaleY(3.4)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -148,9 +157,9 @@ svg text{fill:var(--mute);font:11px var(--display)}
 <button class="orb" id="orb" hidden aria-label="Jarvis"></button>
 <button class="tab" id="otab" hidden data-act="orbshow">JARVIS</button>
 <div class="panel" id="panel" hidden>
-  <header><b>JARVIS POWER</b><button data-act="orbclose" data-k="min">Minimise</button><button data-act="orbhide" data-k="hide">Hide</button></header>
+  <header><span id="pav"></span><b>JARVIS POWER</b><button data-act="orbclose" data-k="min">Minimise</button><button data-act="orbhide" data-k="hide">Hide</button></header>
   <div id="olog"></div>
-  <div class="inrow"><input type="text" id="oin" autocomplete="off"><button class="chip" id="omic" hidden>Mic</button><button class="btn pri" id="osend" data-act="osend">Send</button></div>
+  <div class="inrow"><input type="text" id="oin" autocomplete="off"><button class="chip" id="omic" data-k="mic">Mic</button><button class="btn pri" id="osend" data-act="osend">Send</button></div>
 </div>
 <div class="modal" id="modal" hidden><div class="card" id="modalbox"></div></div>
 <div id="toast" hidden></div>
@@ -202,16 +211,56 @@ function sfx(k){if(!DB.settings.sound)return;
   else if(k==='boot'){tone(90,1600,.9,'sawtooth',.03);tone(800,1600,.15,'sine',.05,.8);tone(1200,2400,.3,'sine',.04,.95)}}
 document.addEventListener('click',e=>{if(e.target.closest('button'))sfx('click')},true);
 
+/* ===== Jarvis avatar (male / female hologram bust) ===== */
+function avatar(g,size){const f=g==='f';let sc='';for(let y=10;y<92;y+=4)sc+=`<line x1="8" x2="92" y1="${y}" y2="${y}" stroke="#38e8ff" stroke-opacity=".10"/>`;
+  const hair=f?`<path d="M34 42C30 18 70 18 66 42C70 56 71 66 65 76L59 69C61 58 60 45 60 38C54 33 46 33 40 38C40 45 39 58 41 69L35 76C29 66 30 56 34 42Z" fill="rgba(56,232,255,.38)" stroke="#38e8ff" stroke-width="1.2"/>`
+    :`<path d="M36 40C34 22 66 22 64 40C61 33 56 30 50 30C44 30 39 33 36 40Z" fill="rgba(56,232,255,.42)" stroke="#38e8ff" stroke-width="1.2"/>`;
+  const extra=f?`<circle cx="36" cy="47" r="1.3" fill="#ffb347"/><circle cx="64" cy="47" r="1.3" fill="#ffb347"/><path d="M40 40.2L38.5 39M60 40.2L61.5 39" stroke="#d6f6ff" stroke-width=".8"/>`:`<path d="M37 40L37 48M63 40L63 48" stroke="#38e8ff" stroke-width=".8" stroke-opacity=".6"/>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <circle cx="50" cy="50" r="46" fill="#06202c" stroke="#38e8ff" stroke-width="2"/>
+  <g class="spin"><circle cx="50" cy="50" r="48.5" fill="none" stroke="#ffb347" stroke-width="1" stroke-dasharray="3 6"/></g>
+  <path d="M14 75C20 66 34 63 50 63C66 63 80 66 86 75A44 44 0 0 1 14 75Z" fill="#0b3a4d" stroke="#38e8ff" stroke-width="1.5"/>
+  <path d="M40 65L50 77L60 65" fill="none" stroke="#38e8ff" stroke-width="1.3"/>
+  <circle cx="50" cy="82" r="3.6" fill="#d6f6ff" class="glow"/><circle cx="50" cy="82" r="6" fill="none" stroke="#38e8ff" stroke-width="1"/>
+  <rect x="44" y="55" width="12" height="11" fill="#0e4a60"/>
+  <ellipse cx="50" cy="42" rx="14" ry="17" fill="#12566f" stroke="#38e8ff" stroke-width="1.5"/>
+  ${hair}${extra}
+  <ellipse class="blink" cx="43.5" cy="42" rx="2.6" ry="1.5" fill="#d6f6ff"/><ellipse class="blink" cx="56.5" cy="42" rx="2.6" ry="1.5" fill="#d6f6ff"/>
+  <path d="M50 44L48.7 49.5L51.3 49.5" fill="none" stroke="#38e8ff" stroke-opacity=".7" stroke-width=".9"/>
+  <ellipse class="mouth" cx="50" cy="53.5" rx="4" ry="1" fill="${f?'#ffb347':'#38e8ff'}"/>
+  ${sc}</svg>`}
+
 /* ===== voice ===== */
-function pickVoice(){const vs=window.speechSynthesis?speechSynthesis.getVoices():[];const pre=lang()==='hi'?'hi':'en';
-  const m=vs.filter(v=>v.lang.toLowerCase().startsWith(pre));
-  return m.find(v=>/male|daniel|david|rishi|hemant|prabhat/i.test(v.name)&&!/female/i.test(v.name))||m[0]||null}
+function voiceGender(v){const n=v.name;if(/female|zira|heera|swara|neerja|priya|samantha|susan|hazel|kalpana|aria|jenny|emma|karen|veena|tessa|lekha|natasha|libby|sonia/i.test(n))return'f';
+  if(/(^|[^a-z])male|david|daniel|mark|ravi|hemant|prabhat|rishi|james|george|guy|ryan|alex|madhur|prabhas|ryan/i.test(n))return'm';return null}
+function pickVoice(){if(!window.speechSynthesis)return null;const vs=speechSynthesis.getVoices();if(!vs.length)return null;
+  const sv=DB.settings.voiceURI;if(sv){const f=vs.find(v=>v.voiceURI===sv);if(f)return f}
+  const hi=lang()==='hi',g=DB.profile?.gender;const pool=vs.filter(v=>v.lang.toLowerCase().startsWith(hi?'hi':'en'));if(!pool.length)return null;
+  const sc=v=>{let s=0;if(voiceGender(v)===g)s+=4;else if(voiceGender(v))s-=3;if(/google|neural|natural|online|network/i.test(v.name+v.voiceURI)||v.localService===false)s+=2;if(/^(hi-IN|en-IN)$/i.test(v.lang))s+=1;return s};
+  return pool.map(v=>[sc(v),v]).sort((a,b)=>b[0]-a[0])[0][1]}
+let spk=0;
 function speak(text,cancel){if(!DB.settings.voice||!('speechSynthesis' in window))return;
-  try{if(cancel)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/[\u{1F300}-\u{1FAFF}•·→]/gu,' ').slice(0,300));
-    u.lang=lang()==='hi'?'hi-IN':'en-IN';const v=pickVoice();if(v)u.voice=v;u.pitch=.8;u.rate=.98;speechSynthesis.speak(u)}catch(e){}}
-function listen(onText,onErr){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return onErr('unsupported');
-  try{const r=new SR();r.lang=lang()==='en'?'en-IN':'hi-IN';r.onresult=e=>onText(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'error');r.start()}catch(e){onErr(e.name||'error')}}
-const MICFAIL={en:"The microphone is not available in this app window. Please type, I will reply the same way.",hi:"इस ऐप विंडो में माइक्रोफ़ोन उपलब्ध नहीं है। कृपया टाइप करें, मैं उसी तरह जवाब दूँगा।",hn:"Is app window me microphone available nahi hai. Please type karein, main usi tarah jawab dunga."};
+  try{if(cancel){speechSynthesis.cancel();spk=0;document.body.classList.remove('speaking')}
+    const u=new SpeechSynthesisUtterance(String(text).replace(/[\u{1F300}-\u{1FAFF}•·→]/gu,' ').slice(0,300));
+    u.lang=lang()==='hi'?'hi-IN':'en-IN';const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}
+    const g=DB.profile?.gender,match=v&&voiceGender(v)===g;u.pitch=match?1:(g==='f'?1.12:g==='m'?.9:1);u.rate=.96;
+    u.onstart=()=>{spk++;document.body.classList.add('speaking')};const end=()=>{spk=Math.max(0,spk-1);if(!spk)document.body.classList.remove('speaking')};u.onend=end;u.onerror=end;
+    speechSynthesis.speak(u)}catch(e){}}
+let recog=null;
+function listen(onText,onErr,onState){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return onErr('unsupported');
+  try{if(recog){try{recog.stop()}catch(e){}}const r=new SR();recog=r;r.lang=lang()==='en'?'en-IN':'hi-IN';r.interimResults=false;r.maxAlternatives=1;
+    r.onstart=()=>onState&&onState(true);r.onresult=e=>onText(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'error');r.onend=()=>onState&&onState(false);r.start()}catch(e){onErr(e.name||'error')}}
+function micMsg(e){const m={
+  'not-allowed':{en:'Microphone is blocked. In Chrome tap the lock icon near the address bar, open Permissions, and allow Microphone. Then try again.',hi:'माइक्रोफ़ोन बंद है। Chrome में एड्रेस बार के पास लॉक आइकन दबाएँ, Permissions में Microphone को Allow करें, फिर दोबारा कोशिश करें।',hn:'Microphone blocked hai. Chrome me address bar ke paas lock icon dabayein, Permissions me Microphone ko Allow karein, phir dobara try karein.'},
+  'no-speech':{en:'I did not hear anything. Please try again.',hi:'मुझे कुछ सुनाई नहीं दिया। फिर से बोलिए।',hn:'Mujhe kuch sunai nahi diya. Phir se boliye.'},
+  'network':{en:'Voice typing needs internet. Please check your connection.',hi:'वॉइस टाइपिंग के लिए इंटरनेट चाहिए। कनेक्शन देखें।',hn:'Voice typing ke liye internet chahiye. Connection check karein.'},
+  'audio-capture':{en:'No microphone was found on this device.',hi:'इस डिवाइस में माइक्रोफ़ोन नहीं मिला।',hn:'Is device me microphone nahi mila.'},
+  'unsupported':{en:'This browser does not support voice input. Please use Chrome.',hi:'यह ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता। कृपया Chrome इस्तेमाल करें।',hn:'Ye browser voice input support nahi karta. Please Chrome use karein.'}}[e];
+  return T(m||{en:'Microphone problem ('+e+'). Please type instead.',hi:'माइक्रोफ़ोन में समस्या ('+e+')। कृपया टाइप करें।',hn:'Microphone me problem ('+e+'). Please type karein.'})}
+async function doMic(onText,btn){
+  if(!DB.settings.mic){if(!await askPermission({en:'Allow Jarvis to use your microphone to hear you?',hi:'क्या जार्विस आपको सुनने के लिए माइक्रोफ़ोन इस्तेमाल कर सकता है?',hn:'Kya Jarvis aapko sunne ke liye microphone use kar sakta hai?'}))return;DB.settings.mic=true;save()}
+  try{speechSynthesis.cancel()}catch(e){}
+  const lbl=btn.textContent;listen(onText,err=>toast(micMsg(err)),on=>{btn.textContent=on?T({en:'Listening...',hi:'सुन रहा हूँ...',hn:'Sun raha hoon...'}):lbl;btn.classList.toggle('rec',on)})}
 
 /* ===== permission modal ===== */
 function askPermission(q){return new Promise(res=>{const m=$('#modal'),b=$('#modalbox');
@@ -348,7 +397,7 @@ function genPlan(o,tg,rng,recent){const meals=buildMeals(o,tg.kcal,rng,recent);
   pl.notes=notesFor(o,pl);return pl}
 
 /* ===== console: say / ask ===== */
-const LBL={online:{en:'Online',hi:'ऑनलाइन',hn:'Online'},home:{en:'Home',hi:'होम',hn:'Home'},plan:{en:'Plan',hi:'प्लान',hn:'Plan'},rec:{en:'Records',hi:'रिकॉर्ड',hn:'Records'},set:{en:'Settings',hi:'सेटिंग्स',hn:'Settings'},min:{en:'Minimise',hi:'छोटा करें',hn:'Minimise'},hide:{en:'Hide',hi:'छुपाएँ',hn:'Hide'}};
+const LBL={online:{en:'Online',hi:'ऑनलाइन',hn:'Online'},home:{en:'Home',hi:'होम',hn:'Home'},plan:{en:'Plan',hi:'प्लान',hn:'Plan'},rec:{en:'Records',hi:'रिकॉर्ड',hn:'Records'},set:{en:'Settings',hi:'सेटिंग्स',hn:'Settings'},min:{en:'Minimise',hi:'छोटा करें',hn:'Minimise'},hide:{en:'Hide',hi:'छुपाएँ',hn:'Hide'},mic:{en:'Mic',hi:'माइक',hn:'Mic'}};
 const X={ok:{en:'OK',hi:'ठीक है',hn:'OK'},skip:{en:'Skip',hi:'छोड़ें',hn:'Skip'},conf:{en:'Confirm',hi:'पक्का करें',hn:'Confirm karein'}};
 let FID=0,pending=null;
 function bubble(who,text,box){const b=document.createElement('div');b.className='b '+who;b.textContent=text;(box||$('#log')).appendChild(b);(box||$('#log')).scrollTop=1e9;return b}
@@ -359,7 +408,7 @@ async function ask(c){const id=FID;await say(c.q);if(id!==FID)throw'abort';
   return new Promise((res,rej)=>{pending={rej};const dock=$('#dock');dock.innerHTML='';
     const done=(v,label)=>{pending=null;try{speechSynthesis.cancel()}catch(e){}bubble('u',label);dock.innerHTML='';sfx('confirm');res(v)};
     if(c.type==='choice'){c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.textContent=T(o.l);b.onclick=()=>done(o.v,T(o.l));dock.appendChild(b)});return}
-    if(c.type==='multi'){const sel=new Set();c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed','false');b.textContent=T(o.l);
+    if(c.type==='multi'){const sel=new Set(c.def||[]);c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',String(sel.has(o.v)));b.textContent=T(o.l);
       b.onclick=()=>{if(sel.has(o.v)){sel.delete(o.v)}else{if(o.x)sel.clear();else c.opts.filter(z=>z.x).forEach(z=>sel.delete(z.v));sel.add(o.v)}
         $$('.chip',dock).forEach((e,i)=>e.setAttribute('aria-pressed',sel.has(c.opts[i].v)))};dock.appendChild(b)});
       const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.conf);
@@ -370,7 +419,7 @@ async function ask(c){const id=FID;await say(c.q);if(id!==FID)throw'abort';
     const go=()=>{const raw=inp.value.trim();if(!raw){if(c.skip)return done(null,T(X.skip));return}
       if(num){const v=parseFloat(raw.replace(',','.'));if(isNaN(v)||v<c.min||v>c.max){err.textContent=T({en:`Please enter a number between ${c.min} and ${c.max}.`,hi:`कृपया ${c.min} से ${c.max} के बीच संख्या लिखें।`,hn:`Please ${c.min} se ${c.max} ke beech number likhein.`});err.hidden=false;sfx('err');return}done(v,String(v))}else done(raw.slice(0,120),raw.slice(0,120))};
     inp.onkeydown=e=>{if(e.key==='Enter')go()};const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.ok);ok.onclick=go;row.append(inp,ok);
-    if(!num&&DB.settings.mic){const m=document.createElement('button');m.className='chip';m.textContent='Mic';m.onclick=()=>listen(t=>{inp.value=t},()=>toast(T(MICFAIL)));row.appendChild(m)}
+    if(!num){const m=document.createElement('button');m.className='chip';m.textContent=T({en:'Mic',hi:'माइक',hn:'Mic'});m.onclick=()=>doMic(t=>{inp.value=t},m);row.appendChild(m)}
     if(c.skip){const s=document.createElement('button');s.className='chip';s.textContent=T(X.skip);s.onclick=()=>done(null,T(X.skip));row.appendChild(s)}
     dock.append(row,err);inp.focus()})}
 const opt=(v,en,hi,hn,x)=>({v,x,l:{en,hi,hn:hn??en}});
@@ -382,31 +431,30 @@ function clearLog(){$('#log').innerHTML='';$('#dock').innerHTML=''}
 
 /* ===== onboarding ===== */
 async function onboard(){
-  go('talk');clearLog();DB.profile={};
-  await say({hn:'Namaste! Main Jarvis Power hoon, aapka personal diet assistant.\nHello! I am Jarvis Power, your personal diet assistant.'});
-  const name=await ask({type:'text',q:{hn:'Sabse pehle, aapka naam kya hai?\nFirst, what should I call you?'},ph:{hn:'Naam / Name'}});
-  DB.profile={name};
-  const g=await ask({type:'choice',q:{hn:`Welcome, ${name}! Aap male hain ya female?\nAre you male or female?`},opts:[opt('m','Male / पुरुष'),opt('f','Female / महिला')]});
-  DB.profile.gender=g;
-  const lg=await ask({type:'choice',q:{hn:'Kis bhasha me baat karein?\nWhich language should we use?'},opts:[opt('hi','हिंदी'),opt('en','English'),opt('hn','Hinglish (Hindi + English)')]});
-  DB.profile.lang=lg;
-  const pm=await ask({type:'multi',q:{en:'{n}, I need your permission before I use anything on this device. Choose what I may use.',hi:'{n}, इस डिवाइस पर कुछ भी इस्तेमाल करने से पहले मुझे आपकी अनुमति चाहिए। चुनिए, मैं क्या इस्तेमाल कर सकता हूँ।',hn:'{n}, is device par kuch bhi use karne se pehle mujhe aapki permission chahiye. Chuniye, main kya use kar sakta hoon.'},
-    opts:[opt('save','Save my data on this device','मेरा डेटा इसी डिवाइस पर सहेजें','Mera data isi device par save karein'),opt('voice','Jarvis voice (speak replies)','जार्विस की आवाज़ (जवाब बोलकर)','Jarvis ki awaaz (jawab bolkar)'),opt('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects'),opt('mic','Microphone (talk to me)','माइक्रोफ़ोन (मुझसे बात करें)','Microphone (mujhse baat karein)')]});
-  Object.assign(DB.settings,{save:pm.includes('save'),voice:pm.includes('voice'),sound:pm.includes('sound'),mic:pm.includes('mic'),roam:true});
-  if(DB.settings.sound)sfx('boot');
-  await say({en:'Understood. I will use only what you allowed.',hi:'समझ गया। मैं सिर्फ़ वही इस्तेमाल करूँगा जिसकी आपने अनुमति दी है।',hn:'Samajh gaya. Main sirf wahi use karunga jiski aapne permission di hai.'});
-  if(DB.settings.voice)speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}));
-  const P=DB.profile;
-  P.age=await ask({type:'num',min:12,max:100,q:{en:'How old are you? (years)',hi:'आपकी उम्र कितनी है? (साल)',hn:'Aapki age kitni hai? (saal)'}});
-  P.height=await ask({type:'num',min:120,max:230,q:{en:'Your height in cm?',hi:'आपकी लंबाई कितनी है? (सेमी)',hn:'Aapki height kitni hai? (cm)'}});
-  P.weight=await ask({type:'num',min:25,max:250,q:{en:'Your current weight in kg?',hi:'आपका वज़न कितना है? (किलो)',hn:'Aapka abhi ka weight kitna hai? (kg)'}});
-  P.weight0=P.weight;P.joined=ymd();
-  P.activity=await ask({type:'choice',q:{en:'How active are you?',hi:'आप कितने सक्रिय हैं?',hn:'Aap kitne active hain?'},opts:[
-    opt('low','Low (desk job, little walking)','कम (बैठकर काम, कम चलना)','Low (baith ke kaam, kam chalna)'),opt('mod','Moderate (walk or exercise 3-4 days)','मध्यम (हफ्ते में 3-4 दिन वॉक/व्यायाम)','Moderate (hafte me 3-4 din walk/exercise)'),opt('high','High (hard exercise most days)','ज़्यादा (लगभग रोज़ कड़ी कसरत)','High (lagbhag roz hard exercise)')]});
-  P.diet=await ask({type:'choice',q:{en:'What do you eat?',hi:'आप क्या खाते हैं?',hn:'Aap kya khate hain?'},opts:[opt('v','Veg','शाकाहारी','Veg'),opt('e','Veg + Egg','शाकाहारी + अंडा','Veg + Egg'),opt('n','Non-veg','नॉन-वेज','Non-veg')]});
-  P.conds=(await ask({type:'multi',q:{en:'Any health condition? Choose all that apply.',hi:'कोई स्वास्थ्य समस्या? जो लागू हों सब चुनें।',hn:'Koi health problem? Jo lagu ho sab chunein.'},opts:[
-    opt('none','None','कोई नहीं','Koi nahi',true),opt('sugar','Diabetes / sugar','डायबिटीज़ / शुगर','Diabetes / sugar'),opt('bp','High BP','हाई बीपी','High BP'),opt('acid','Acidity / gas','एसिडिटी / गैस','Acidity / gas'),opt('thyroid','Thyroid','थायरॉइड','Thyroid'),opt('other','Something else','कुछ और','Kuch aur')]})).filter(x=>x!=='none');
-  P.allergy=(await ask({type:'text',skip:true,q:{en:'Any food allergy, or foods you never eat? (type, or skip)',hi:'कोई एलर्जी या ऐसा खाना जो आप नहीं खाते? (लिखें या छोड़ें)',hn:'Koi food allergy ya aisa khana jo aap nahi khate? (likhein ya skip)'}}))||'';
+  go('talk');clearLog();if(!DB.profile)DB.profile={};const P=DB.profile;
+  if(!P.name){
+    await say({hn:'Namaste! Main Jarvis Power hoon, aapka personal diet assistant.\nHello! I am Jarvis Power, your personal diet assistant.'});
+    P.name=await ask({type:'text',q:{hn:'Sabse pehle, aapka naam kya hai?\nFirst, what should I call you?'},ph:{hn:'Naam / Name'}});save()}
+  else await say({hn:`Welcome back, ${P.name}! Setup poora karte hain.\nLet us finish your setup.`});
+  if(!P.gender){P.gender=await ask({type:'choice',q:{hn:`Welcome, ${P.name}! Aap male hain ya female?\nAre you male or female?`},opts:[opt('m','Male / पुरुष'),opt('f','Female / महिला')]});save()}
+  if(!P.lang){P.lang=await ask({type:'choice',q:{hn:'Kis bhasha me baat karein?\nWhich language should we use?'},opts:[opt('hi','हिंदी'),opt('en','English'),opt('hn','Hinglish (Hindi + English)')]});save()}
+  if(!P.perm){
+    const pm=await ask({type:'multi',def:['save','voice','sound'],q:{en:'{n}, I need your permission before I use anything on this device. Choose what I may use. Keep "Save my data" ticked so I remember you.',hi:'{n}, इस डिवाइस पर कुछ भी इस्तेमाल करने से पहले मुझे आपकी अनुमति चाहिए। चुनिए, मैं क्या इस्तेमाल कर सकता हूँ। "डेटा सहेजें" चुना रखें ताकि मैं आपको याद रख सकूँ।',hn:'{n}, is device par kuch bhi use karne se pehle mujhe aapki permission chahiye. Chuniye, main kya use kar sakta hoon. "Data save" tick rakhein taaki main aapko yaad rakh sakun.'},
+      opts:[opt('save','Save my data on this device','मेरा डेटा इसी डिवाइस पर सहेजें','Mera data isi device par save karein'),opt('voice','Jarvis voice (speak replies)','जार्विस की आवाज़ (जवाब बोलकर)','Jarvis ki awaaz (jawab bolkar)'),opt('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects'),opt('mic','Microphone (talk to me)','माइक्रोफ़ोन (मुझसे बात करें)','Microphone (mujhse baat karein)')]});
+    Object.assign(DB.settings,{save:pm.includes('save'),voice:pm.includes('voice'),sound:pm.includes('sound'),mic:pm.includes('mic'),roam:true});
+    P.perm=true;if(!DB.settings.save){try{localStorage.removeItem(KEY)}catch(e){}}save();
+    if(DB.settings.sound)sfx('boot');
+    await say({en:'Understood. I will use only what you allowed.',hi:'समझ गया। मैं सिर्फ़ वही इस्तेमाल करूँगा जिसकी आपने अनुमति दी है।',hn:'Samajh gaya. Main sirf wahi use karunga jiski aapne permission di hai.'});
+    if(DB.settings.voice)speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}))}
+  if(!P.age){P.age=await ask({type:'num',min:12,max:100,q:{en:'How old are you? (years)',hi:'आपकी उम्र कितनी है? (साल)',hn:'Aapki age kitni hai? (saal)'}});save()}
+  if(!P.height){P.height=await ask({type:'num',min:120,max:230,q:{en:'Your height in cm?',hi:'आपकी लंबाई कितनी है? (सेमी)',hn:'Aapki height kitni hai? (cm)'}});save()}
+  if(!P.weight){P.weight=await ask({type:'num',min:25,max:250,q:{en:'Your current weight in kg?',hi:'आपका वज़न कितना है? (किलो)',hn:'Aapka abhi ka weight kitna hai? (kg)'}});P.weight0=P.weight;P.joined=ymd();save()}
+  if(!P.activity){P.activity=await ask({type:'choice',q:{en:'How active are you?',hi:'आप कितने सक्रिय हैं?',hn:'Aap kitne active hain?'},opts:[
+    opt('low','Low (desk job, little walking)','कम (बैठकर काम, कम चलना)','Low (baith ke kaam, kam chalna)'),opt('mod','Moderate (walk or exercise 3-4 days)','मध्यम (हफ्ते में 3-4 दिन वॉक/व्यायाम)','Moderate (hafte me 3-4 din walk/exercise)'),opt('high','High (hard exercise most days)','ज़्यादा (लगभग रोज़ कड़ी कसरत)','High (lagbhag roz hard exercise)')]});save()}
+  if(!P.diet){P.diet=await ask({type:'choice',q:{en:'What do you eat?',hi:'आप क्या खाते हैं?',hn:'Aap kya khate hain?'},opts:[opt('v','Veg','शाकाहारी','Veg'),opt('e','Veg + Egg','शाकाहारी + अंडा','Veg + Egg'),opt('n','Non-veg','नॉन-वेज','Non-veg')]});save()}
+  if(!P.conds){P.conds=(await ask({type:'multi',q:{en:'Any health condition? Choose all that apply.',hi:'कोई स्वास्थ्य समस्या? जो लागू हों सब चुनें।',hn:'Koi health problem? Jo lagu ho sab chunein.'},opts:[
+    opt('none','None','कोई नहीं','Koi nahi',true),opt('sugar','Diabetes / sugar','डायबिटीज़ / शुगर','Diabetes / sugar'),opt('bp','High BP','हाई बीपी','High BP'),opt('acid','Acidity / gas','एसिडिटी / गैस','Acidity / gas'),opt('thyroid','Thyroid','थायरॉइड','Thyroid'),opt('other','Something else','कुछ और','Kuch aur')]})).filter(x=>x!=='none');save()}
+  if(P.allergy==null){P.allergy=(await ask({type:'text',skip:true,q:{en:'Any food allergy, or foods you never eat? (type, or skip)',hi:'कोई एलर्जी या ऐसा खाना जो आप नहीं खाते? (लिखें या छोड़ें)',hn:'Koi food allergy ya aisa khana jo aap nahi khate? (likhein ya skip)'}}))||'';save()}
   P.done=true;save();
   await say({en:'Profile saved, {n}. Now choose Daily or Weekly diet.',hi:'प्रोफ़ाइल सहेज ली गई, {n}। अब डेली या वीकली डाइट चुनिए।',hn:'Profile save ho gayi, {n}. Ab Daily ya Weekly diet chuniye.'});
   applyStatic();orbInit();go('home')}
@@ -475,7 +523,7 @@ function go(v){view=v;$$('.view').forEach(e=>e.hidden=e.id!=='v-'+v);$$('.nav bu
   ({home:renderHome,plan:renderPlan,rec:renderRec,set:renderSet}[v]||(()=>{}))()}
 function applyStatic(){$$('[data-k]').forEach(e=>e.textContent=T(LBL[e.dataset.k]));document.documentElement.lang=lang()==='hi'?'hi':'en';
   $('#oin').placeholder=T({en:'Ask Jarvis...',hi:'जार्विस से पूछें...',hn:'Jarvis se poochein...'});
-  $('#osend').textContent=T({en:'Send',hi:'भेजें',hn:'Send'});$('#omic').hidden=!DB.settings.mic}
+  $('#osend').textContent=T({en:'Send',hi:'भेजें',hn:'Send'});$('#omic').hidden=false}
 const todayPlan=()=>planFor(ymd());
 function streak(){let n=0,d=ymd();if(!DB.days[d])d=addDays(d,-1);while(DB.days[d]){n++;d=addDays(d,-1)}return n}
 const TIPS=[{en:'Protein at every meal keeps hunger steady.',hi:'हर भोजन में प्रोटीन रखने से भूख संतुलित रहती है।',hn:'Har meal me protein rakhne se bhookh balanced rehti hai.'},
@@ -550,16 +598,19 @@ function renderSet(){const P=DB.profile,S=DB.settings;
   <div class="card"><h3>${esc(T({en:'Permissions',hi:'अनुमतियाँ',hn:'Permissions'}))}</h3>
    ${tg('save','Save data on this device','डेटा इसी डिवाइस पर सहेजें','Data isi device par save karein')}${tg('voice','Jarvis voice','जार्विस की आवाज़','Jarvis ki awaaz')}${tg('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects')}${tg('mic','Microphone','माइक्रोफ़ोन','Microphone')}${tg('roam','Jarvis moves around on its own','जार्विस अपने आप घूमे','Jarvis apne aap ghoome')}
    <div class="row" style="border:0"><span>${esc(T({en:'Jarvis orb',hi:'जार्विस ऑर्ब',hn:'Jarvis orb'}))}</span><button class="chip" data-act="${DB.orb.hidden?'orbshow':'orbhide'}">${esc(DB.orb.hidden?T({en:'Show',hi:'दिखाएँ',hn:'Show'}):T({en:'Hide',hi:'छुपाएँ',hn:'Hide'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Jarvis voice',hi:'जार्विस की आवाज़',hn:'Jarvis ki awaaz'}))}</h3><p class="muted" style="margin-bottom:8px">${esc(T({en:'Auto picks a voice that matches your gender. You can choose a voice you like better.',hi:'ऑटो में आपके जेंडर से मेल खाती आवाज़ चुनी जाती है। आप अपनी पसंद की आवाज़ भी चुन सकते हैं।',hn:'Auto me aapke gender se match karti awaaz chuni jaati hai. Aap apni pasand ki awaaz bhi chun sakte hain.'}))}</p><div class="inrow"><select id="vsel" aria-label="voice"><option value="">Auto</option>${voiceOpts()}</select><button class="chip" data-act="vtest">${esc(T({en:'Test',hi:'सुनें',hn:'Test'}))}</button></div></div>
   <div class="card"><h3>${esc(T({en:'Backup',hi:'बैकअप',hn:'Backup'}))}</h3><p class="muted" style="margin-bottom:8px">${esc(T({en:'Your data stays only in this browser. Copy the backup code to move it to another device.',hi:'आपका डेटा सिर्फ़ इसी ब्राउज़र में रहता है। दूसरे डिवाइस पर ले जाने के लिए बैकअप कोड कॉपी करें।',hn:'Aapka data sirf isi browser me rehta hai. Dusre device par le jaane ke liye backup code copy karein.'}))}</p>
    <div class="seg" style="margin-bottom:8px"><button class="btn" data-act="bkcopy">${esc(T({en:'Copy backup code',hi:'बैकअप कोड कॉपी करें',hn:'Backup code copy karein'}))}</button></div>
    <textarea id="bkin" placeholder="${esc(T({en:'Paste a backup code here',hi:'यहाँ बैकअप कोड पेस्ट करें',hn:'Yahan backup code paste karein'}))}"></textarea>
    <div class="seg" style="margin-top:8px"><button class="btn" data-act="bkrestore">${esc(T({en:'Restore',hi:'रीस्टोर',hn:'Restore'}))}</button></div></div>
   <div class="card"><h3>${esc(T({en:'Erase everything',hi:'सब मिटाएँ',hn:'Sab mitayein'}))}</h3><div class="seg" id="erase"><button class="btn bad" data-act="erase1">${esc(T({en:'Erase all my data',hi:'मेरा सारा डेटा मिटाएँ',hn:'Mera sara data mitayein'}))}</button></div></div></div>`}
 
+function voiceOpts(){const S=DB.settings;return(window.speechSynthesis?speechSynthesis.getVoices():[]).filter(v=>/^(hi|en)/i.test(v.lang)).map(v=>`<option value="${esc(v.voiceURI)}"${S.voiceURI===v.voiceURI?' selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}
+
 /* ===== Jarvis orb ===== */
 const orb=$('#orb');let panelOpen=false,lastTouch=0,dragging=false;
-function orbPos(x,y){const m=8,maxx=innerWidth-64-m,maxy=innerHeight-64-m;orb.style.left=clamp(x,m,maxx)+'px';orb.style.top=clamp(y,m+60,maxy)+'px'}
-function orbInit(){orb.innerHTML=reactor(64);orb.hidden=!!DB.orb.hidden||!DB.profile?.done;$('#otab').hidden=!DB.orb.hidden||!DB.profile?.done;
+function orbPos(x,y){const m=8,maxx=innerWidth-72-m,maxy=innerHeight-72-m;orb.style.left=clamp(x,m,maxx)+'px';orb.style.top=clamp(y,m+60,maxy)+'px'}
+function orbInit(){orb.innerHTML=avatar(DB.profile?.gender,72);$('#pav').innerHTML=avatar(DB.profile?.gender,34);orb.hidden=!!DB.orb.hidden||!DB.profile?.done;$('#otab').hidden=!DB.orb.hidden||!DB.profile?.done;
   orbPos(DB.orb.x??innerWidth-80,DB.orb.y??innerHeight-150)}
 let dsx,dsy,dox,doy,moved;
 orb.addEventListener('pointerdown',e=>{dragging=true;moved=false;dsx=e.clientX;dsy=e.clientY;const r=orb.getBoundingClientRect();dox=r.left;doy=r.top;orb.classList.add('drag');orb.setPointerCapture(e.pointerId)});
@@ -592,7 +643,7 @@ const R={
  time:()=>{const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});return{en:`It is ${t}.`,hi:`अभी ${t} हुए हैं।`,hn:`Abhi ${t} hue hain.`}},
  thanks:{en:'Always at your service, {n}.',hi:'हमेशा आपकी सेवा में, {n}।',hn:'Hamesha aapki seva me, {n}.'},
  dflt:{en:'I did not get that. Try asking about protein, water, weight loss, weight gain, muscle, sleep, or "what should I eat". You can also say "daily" or "weekly".',hi:'मैं समझ नहीं पाया। प्रोटीन, पानी, वज़न घटाना, वज़न बढ़ाना, मसल, नींद या "क्या खाऊँ" पूछिए। "डेली" या "वीकली" भी कह सकते हैं।',hn:'Main samajh nahi paya. Protein, paani, weight loss, weight gain, muscle, neend ya "kya khaun" poochiye. "Daily" ya "weekly" bhi bol sakte hain.'}};
-function reply(t){t=t.toLowerCase();const m=r=>r.test(t);
+function appReply(t){const m=r=>r.test(t);
   if(m(/hide|chup|chhup|band kar|hatao|छुप|हटाओ/)){hideOrb();return null}
   if(m(/weekly|week|hafte|haftey|वीकली|साप्ताहिक|हफ़्ते|हफ्ते/)){go('talk');runFlow(weeklyFlow);return{en:'Starting the weekly plan.',hi:'वीकली प्लान शुरू कर रहा हूँ।',hn:'Weekly plan shuru kar raha hoon.'}}
   if(m(/daily|aaj ka|डेली|आज का/)){go('talk');runFlow(dailyFlow);return{en:'Starting your daily check-in.',hi:'डेली चेक-इन शुरू कर रहा हूँ।',hn:'Daily check-in shuru kar raha hoon.'}}
@@ -609,12 +660,48 @@ function reply(t){t=t.toLowerCase();const m=r=>r.test(t);
   if(m(/sleep|neend|नींद/))return R.sleep;
   if(m(/time|samay|baje|समय/))return R.time();
   if(m(/thank|shukriya|dhanyavaad|धन्यवाद|शुक्रिया/))return R.thanks;
-  if(m(/\b(hi|hello|hey|hii)\b|namaste|नमस्ते/))return R.greet;
-  return R.dflt}
-function osend(){const i=$('#oin'),t=i.value.trim();if(!t)return;i.value='';bubble('u',t,$('#olog'));const r=reply(t);
-  if(r){const s=T(r);bubble('j',s,$('#olog'));speak(s,true)}}
+  if(t.length<25&&m(/\b(hi|hello|hey|hii)\b|namaste|नमस्ते/))return R.greet;
+  return undefined}
+/* ===== general answers: math, date, weather, Wikipedia, small talk ===== */
+async function jget(u){const c=new AbortController(),to=setTimeout(()=>c.abort(),9000);try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error(r.status);return await r.json()}finally{clearTimeout(to)}}
+const NET={en:'I could not reach the internet for that. Please check your connection and ask again.',hi:'इसके लिए मैं इंटरनेट तक नहीं पहुँच पाया। कनेक्शन देखकर फिर पूछिए।',hn:'Iske liye main internet tak nahi pahunch paya. Connection check karke phir poochiye.'};
+const NOTFOUND={en:'I could not find a clear answer for that. Try asking with a simpler name or topic.',hi:'मुझे इसका साफ़ जवाब नहीं मिला। सरल नाम या विषय के साथ पूछिए।',hn:'Mujhe iska saaf jawab nahi mila. Simple naam ya topic ke saath poochiye.'};
+function calcAns(t){const rest=t.replace(/plus|minus|times|multiply|multiplied|divided|divide|into|jodo|ghatao|gunaa|guna|bhaag|calculate|calc|kitna|kitne|hota|hoga|hai|equals|equal|what|is|batao|answer|solve|add|subtract|by|\?|=|[0-9+\-*/().,%x×÷\s]|[ऀ-ॿ]+/g,'');if(rest.length)return null;
+  let e=t.replace(/,/g,'').replace(/\b(plus|jodo|add)\b|जोड़/g,'+').replace(/\b(minus|ghatao|subtract)\b|घटा/g,'-').replace(/\b(times|multiply|multiplied by|gunaa|guna|into)\b|×|\bx\b|गुणा/g,'*').replace(/\b(divided by|divide|bhaag|by)\b|÷|भाग/g,'/');
+  e=e.replace(/[^0-9+\-*/().\s]/g,' ').replace(/\s+/g,' ').trim();if(!/\d/.test(e)||!/[+*/]|\d\s*-\s*\d/.test(e)||!/^[\d+\-*/().\s]+$/.test(e)||e.length>60)return null;
+  try{const v=Function('"use strict";return ('+e+')')();if(typeof v!=='number'||!isFinite(v))return null;const s=`${e} = ${+v.toFixed(6)}`;return{en:s,hi:s,hn:s}}catch(x){return null}}
+function dateAns(){const d=new Date(),s=d.toLocaleDateString(lang()==='hi'?'hi-IN':'en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});return{en:`Today is ${s}.`,hi:`आज ${s} है।`,hn:`Aaj ${s} hai.`}}
+const JOKES=[{en:'Why did the banana go to the doctor? It was not peeling well.',hi:'केला डॉक्टर के पास क्यों गया? क्योंकि उसकी तबीयत छिल रही थी।',hn:'Kela doctor ke paas kyun gaya? Kyunki uski tabiyat "peel" nahi ho rahi thi.'},
+ {en:'I told my diet I would start tomorrow. It has been waiting patiently for years.',hi:'मैंने डाइट से कहा कल से शुरू करूँगा। वह सालों से सब्र से इंतज़ार कर रही है।',hn:'Maine diet se kaha kal se shuru karunga. Wo saalon se sabr se intezaar kar rahi hai.'},
+ {en:'Why do dals never win arguments? They always get cooked in the end.',hi:'दाल बहस क्यों नहीं जीतती? क्योंकि आख़िर में गल ही जाती है।',hn:'Dal behes kyun nahi jeetti? Kyunki aakhir me gal hi jaati hai.'}];
+const WX=c=>c===0?{en:'clear sky',hi:'साफ़ आसमान',hn:'saaf aasmaan'}:c<=3?{en:'partly cloudy',hi:'आंशिक बादल',hn:'thode badal'}:c<=48?{en:'foggy',hi:'कोहरा',hn:'kohra'}:c<=57?{en:'light drizzle',hi:'हल्की बूँदाबाँदी',hn:'halki boondabandi'}:c<=67?{en:'rain',hi:'बारिश',hn:'baarish'}:c<=77?{en:'snow',hi:'बर्फ़बारी',hn:'barfbaari'}:c<=82?{en:'rain showers',hi:'बौछारें',hn:'baucharein'}:{en:'thunderstorm',hi:'आंधी-तूफ़ान',hn:'aandhi-toofan'};
+async function weatherAns(raw){const c=raw.toLowerCase().replace(/weather|mausam|मौसम|temperature|tapman|तापमान|kaisa|kaise|kya|hai|today|aaj|आज|how|is|the|what|in|mein|में|\bme\b|\bka\b|\bki\b|का|की|\?/g,' ').replace(/\s+/g,' ').trim();
+  if(!c)return{en:'Which city? Ask like "weather in Mumbai".',hi:'कौन सा शहर? ऐसे पूछिए: "मुंबई का मौसम"।',hn:'Kaun sa shehar? Aise poochiye: "Mumbai ka mausam".'};
+  const g=await jget(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(c)}&count=1`),r=g.results&&g.results[0];
+  if(!r)return{en:`I could not find the city "${c}".`,hi:`मुझे शहर "${c}" नहीं मिला।`,hn:`Mujhe shehar "${c}" nahi mila.`};
+  const f=await jget(`https://api.open-meteo.com/v1/forecast?latitude=${r.latitude}&longitude=${r.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`),k=f.current,w=WX(k.weather_code);
+  return{en:`${r.name}: ${k.temperature_2m}°C, ${w.en}, humidity ${k.relative_humidity_2m}%, wind ${k.wind_speed_10m} km/h.`,hi:`${r.name}: ${k.temperature_2m}°C, ${w.hi}, नमी ${k.relative_humidity_2m}%, हवा ${k.wind_speed_10m} किमी/घंटा।`,hn:`${r.name}: ${k.temperature_2m}°C, ${w.hn}, humidity ${k.relative_humidity_2m}%, hawa ${k.wind_speed_10m} km/h.`}}
+const FILLER=/\b(please|plz|tell me|batao|bataiye|bataao|mujhe|muje|about|ke baare mein|ke bare me|what is|what's|who is|who was|who are|what are|kya hai|kya hota hai|kya hoti hai|kaun hai|kaun tha|kaun thi|kise kehte hain|meaning of|meaning|explain|define|the|an?|of|is|are|hai|hain|ka|ki|ke)\b|[?!.]|क्या है|कौन है|कौन था|के बारे में|बताओ|बताइए|मुझे/gi;
+async function wikiAns(raw){const q=raw.replace(FILLER,' ').replace(/\s+/g,' ').trim();if(q.length<2)return NOTFOUND;
+  const dev=/[ऀ-ॿ]/.test(q),order=(dev||lang()==='hi')?['hi','en']:['en'];
+  try{for(const wl of order){const s=await jget(`https://${wl}.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=1&format=json&origin=*`),title=s[1]&&s[1][0];if(!title)continue;
+      const j=await jget(`https://${wl}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`),ex=(j.extract||'').trim();if(!ex)continue;
+      const sent=ex.match(/[^.!?।]+[.!?।]+/g)||[ex];let out='';for(const x of sent){if(out&&(out+x).length>380)break;out+=x}
+      return out.trim()+'\n('+T({en:'Source: Wikipedia. It may not cover the latest news.',hi:'स्रोत: विकिपीडिया। इसमें ताज़ा ख़बरें न हों।',hn:'Source: Wikipedia. Isme latest news na ho sakti hai.'})+')'}
+    return NOTFOUND}catch(e){return NET}}
+async function reply(raw){const t=raw.toLowerCase(),m=r=>r.test(t);
+  const a=appReply(t);if(a!==undefined)return a;
+  const c=calcAns(t);if(c)return c;
+  if(m(/\b(date|tarikh|which day|what day)\b|तारीख|कौन सा दिन/))return dateAns();
+  if(m(/weather|mausam|मौसम|temperature|tapman|तापमान/)){try{return await weatherAns(raw)}catch(e){return NET}}
+  if(m(/joke|chutkula|चुटकुला|hasao|हँसा/))return JOKES[Math.floor(Math.random()*JOKES.length)];
+  if(m(/kaise ho|how are you|कैसे हो|kya haal|क्या हाल/))return{en:'I am running at full power, {n}. How are you?',hi:'मैं पूरी ऊर्जा में हूँ, {n}। आप कैसे हैं?',hn:'Main full power me hoon, {n}. Aap kaise hain?'};
+  if(m(/what can you do|kya kar sakte|क्या कर सकते|help|madad/))return{en:'I plan your daily and weekly diet, track your progress, and answer questions: health, math, weather, date and time, and general topics when the internet is on.',hi:'मैं आपकी डेली और वीकली डाइट बनाता हूँ, प्रगति याद रखता हूँ, और सवालों के जवाब देता हूँ: सेहत, गणित, मौसम, तारीख़-समय और इंटरनेट चालू होने पर सामान्य विषय।',hn:'Main aapki daily aur weekly diet banata hoon, progress yaad rakhta hoon, aur sawalon ke jawab deta hoon: health, math, mausam, date-time aur internet on ho to general topics.'};
+  return await wikiAns(raw)}
+async function osend(){const i=$('#oin'),t=i.value.trim();if(!t)return;i.value='';bubble('u',t,$('#olog'));const th=bubble('j','...',$('#olog'));let r;try{r=await reply(t)}catch(e){r=R.dflt}
+  th.remove();if(r){const s=typeof r==='string'?r:T(r);bubble('j',s,$('#olog'));speak(s,true)}}
 $('#oin').addEventListener('keydown',e=>{if(e.key==='Enter')osend()});
-$('#omic').addEventListener('click',()=>listen(t=>{$('#oin').value=t;osend()},()=>{const s=T(MICFAIL);bubble('j',s,$('#olog'))}));
+$('#omic').addEventListener('click',()=>doMic(t=>{$('#oin').value=t;osend()},$('#omic')));
 
 /* ===== actions ===== */
 async function toggleSetting(k){const S=DB.settings;
@@ -632,8 +719,9 @@ function act(a,b){const[k,v]=a.split(':');
    case'wd':WSEL=+v;return renderPlan();
    case'tog':return toggleSetting(v);
    case'lang':DB.profile.lang=v;save();applyStatic();return renderSet();
-   case'gender':DB.profile.gender=v;save();return renderSet();
+   case'gender':DB.profile.gender=v;save();orbInit();return renderSet();
    case'savename':{const n=$('#sname').value.trim().slice(0,30);if(n){DB.profile.name=n;save();toast(T({en:'Name saved.',hi:'नाम सहेजा गया।',hn:'Name save ho gaya.'}))}return}
+   case'vtest':if(!DB.settings.voice){toast(T({en:'Turn Voice ON first.',hi:'पहले आवाज़ ON करें।',hn:'Pehle Voice ON karein.'}));return}speak(T({en:'Hello {n}. This is how I sound.',hi:'नमस्ते {n}। मेरी आवाज़ ऐसी है।',hn:'Hello {n}. Meri awaaz aisi hai.'}),true);return;
    case'orbshow':return showOrb();
    case'orbhide':return hideOrb();
    case'orbclose':return togglePanel(false);
@@ -647,13 +735,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
 
 /* ===== boot ===== */
 function boot(){$('#boot').hidden=false;$('#bootbtn').textContent=DB.profile?.done?T({en:'Activate',hi:'सक्रिय करें',hn:'Activate'}):'Activate'}
-async function activate(){ac();sfx('boot');$('#boot').hidden=true;
+async function activate(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}ac();sfx('boot');$('#boot').hidden=true;
   if(DB.profile?.done){applyStatic();orbInit();go('home');
     const t=T({en:'Welcome back, {n}. Systems online. What shall we plan today?',hi:'वापसी पर स्वागत है, {n}। सिस्टम चालू हैं। आज क्या प्लान करें?',hn:'Welcome back, {n}. Systems online hain. Aaj kya plan karein?'});
     speak(t,true);toast(t)}
   else{applyStatic();runFlow(onboard)}}
 $('#bootlogo').innerHTML=reactor(150);$('#barlogo').innerHTML=reactor(28);
-if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{};
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{if(view==='set')renderSet()};document.addEventListener('change',e=>{if(e.target.id==='vsel'){DB.settings.voiceURI=e.target.value||null;save()}});
 applyStatic();orbInit();if(DB.profile?.done)go("home");boot();
 </script>
 
