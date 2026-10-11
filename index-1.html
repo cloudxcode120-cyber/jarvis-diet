@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04101a">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Jarvis Diet">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Jarvis Power Diet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: full-height HUD console. Top bar + tab row, one active view fills the rest; Jarvis orb floats above everything. */
+:root{
+  --bg:#04101a; --panel:#08202e; --panel2:#0b2a3b; --line:#14506b;
+  --cy:#38e8ff; --cyd:#1aa8c4; --gold:#ffb347; --fg:#d6f6ff; --mute:#7fb2c4;
+  --ok:#5dffb0; --bad:#ff7a7a;
+  --cys:rgba(56,232,255,.08); --golds:rgba(255,179,71,.10);
+  --display:'Orbitron','Rajdhani',system-ui,sans-serif;
+  --body:'Rajdhani','Noto Sans Devanagari',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:500 17px/1.45 var(--body);overflow:hidden;
+  background-image:linear-gradient(rgba(56,232,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(56,232,255,.04) 1px,transparent 1px);background-size:32px 32px}
+button,input,textarea{font:inherit;color:inherit}
+#app{height:100%;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);background:rgba(4,16,26,.92)}
+.bar h1{margin:0;font:700 13px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;flex:1;min-width:0}
+.bar .on{font:500 10px var(--display);letter-spacing:.15em;color:var(--ok);display:flex;align-items:center;gap:6px}
+.bar .on::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.nav{display:flex;border-bottom:1px solid var(--line)}
+.nav button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:10px 4px;font:500 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);cursor:pointer;min-width:0}
+.nav button.act{color:var(--cy);border-bottom-color:var(--cy);text-shadow:0 0 10px var(--cy)}
+main{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow:auto;padding:16px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.view.talk{display:flex;flex-direction:column;padding-bottom:0}
+#log{flex:1;overflow:auto;max-width:720px;width:100%;margin:0 auto;padding-bottom:8px}
+#dock{max-width:720px;width:100%;margin:0 auto;padding:10px 0 14px;display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--line)}
+.b{max-width:90%;padding:9px 14px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere;animation:rise .25s ease}
+.b.j{border-left:2px solid var(--cy);background:var(--cys)}
+.b.u{margin-left:auto;border-right:2px solid var(--gold);background:var(--golds);text-align:right}
+.btn,.chip{cursor:pointer;border:1px solid var(--cyd);background:var(--cys);color:var(--fg);padding:10px 16px;
+  font:600 14px var(--display);letter-spacing:.06em;text-transform:uppercase;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+.chip{font:600 16px var(--body);text-transform:none;letter-spacing:0;padding:9px 14px}
+.btn:hover,.chip:hover{background:rgba(56,232,255,.18)}
+.btn.pri{background:var(--cy);color:#02222c;border-color:var(--cy)}
+.chip[aria-pressed=true]{background:var(--cy);color:#02222c}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.inrow{display:flex;gap:8px;width:100%;flex-wrap:wrap}
+input[type=text],input[type=number],textarea{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);padding:10px 12px;color:var(--fg)}
+textarea{width:100%;min-height:70px}
+.err{width:100%;color:var(--bad);font-size:14px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px 16px;min-width:0}
+.eyebrow{font:500 10px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--cy)}
+h2{margin:0;font:700 22px/1.2 var(--display);text-wrap:balance}
+h3{margin:0 0 8px;font:700 13px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+p{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);padding:10px 12px;background:var(--panel2)}
+.stat b{display:block;font:700 22px var(--display);font-variant-numeric:tabular-nums;color:var(--cy)}
+.stat span{font-size:13px;color:var(--mute)}
+.big{cursor:pointer;text-align:left;border:1px solid var(--cyd);background:var(--panel2);padding:16px;display:flex;flex-direction:column;gap:6px;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.big:hover{background:#0f3850}
+.big b{font:700 17px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--cy)}
+.big span{color:var(--mute);font-size:15px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.meals{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.meal{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.meal:last-child{border:0}
+.tm{font:500 12px var(--display);color:var(--gold);width:48px;flex:none;padding-top:3px;font-variant-numeric:tabular-nums}
+.mb{min-width:0;display:flex;flex-direction:column}
+.mb em{font:normal 600 12px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.mb b{font-weight:700;font-size:18px}
+.mb small{color:var(--mute);font-size:14px}
+ul.pts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.tblw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:15px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+th{font:500 10px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px dashed var(--line)}
+.muted{color:var(--mute)}
+svg text{fill:var(--mute);font:11px var(--display)}
+.ln{fill:none;stroke:var(--cy);stroke-width:2}
+.gr{stroke:var(--line);stroke-width:1}
+.dot{fill:var(--gold)}
+/* orb */
+.orb{position:fixed;width:62px;height:120px;z-index:60;cursor:grab;touch-action:none;filter:drop-shadow(0 0 8px rgba(56,232,255,.5));transition:left 3s ease-in-out,top 3s ease-in-out;background:none;border:0;padding:0}
+.orb.drag{transition:none;cursor:grabbing}
+.orb svg{display:block;margin:0 auto}
+.orb[hidden]{display:none}
+.tab{position:fixed;right:0;top:45%;z-index:60;border:1px solid var(--cy);border-right:0;background:var(--panel);color:var(--cy);font:700 12px var(--display);padding:12px 8px;cursor:pointer;writing-mode:vertical-rl;letter-spacing:.2em}
+.panel{position:fixed;right:0;bottom:0;width:min(420px,100%);height:min(72%,540px);z-index:70;background:rgba(4,16,26,.97);border:1px solid var(--cy);display:flex;flex-direction:column;box-shadow:0 0 30px rgba(56,232,255,.25)}
+.panel[hidden]{display:none}
+.panel header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.panel header b{flex:1;font:700 12px var(--display);letter-spacing:.18em}
+.panel header button{background:none;border:1px solid var(--line);padding:4px 10px;cursor:pointer;font-size:13px}
+#olog{flex:1;overflow:auto;padding:8px 12px}
+.panel .inrow{padding:8px 12px;border-top:1px solid var(--line);flex-wrap:nowrap}
+.modal{position:fixed;inset:0;z-index:90;background:rgba(2,8,14,.85);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal[hidden]{display:none}
+.modal .card{max-width:420px;display:flex;flex-direction:column;gap:12px;border-color:var(--cy)}
+#boot{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}
+#boot[hidden]{display:none}
+#boot h1{margin:0;font:900 clamp(22px,6vw,38px)/1.1 var(--display);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 18px var(--cy)}
+#boot p{color:var(--mute);font:500 12px var(--display);letter-spacing:.2em}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:95;background:var(--panel2);border:1px solid var(--cy);padding:8px 16px;font-size:15px;max-width:90%}
+#toast[hidden]{display:none}
+.spin{animation:spin 20s linear infinite;transform-origin:50px 50px}
+.spin2{animation:spin 12s linear infinite reverse;transform-origin:50px 50px}
+.glow{animation:pulse 2.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.45}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.blink{animation:blink 4.5s infinite;transform-box:fill-box;transform-origin:center}
+.mouth{transform-box:fill-box;transform-origin:center}
+.speaking .mouth{animation:talk .22s ease-in-out infinite alternate}
+.speaking .orb{filter:drop-shadow(0 0 14px var(--cy))}
+.float{animation:float 3.2s ease-in-out infinite}
+
+
+.avm{display:block;pointer-events:none;user-select:none}.avh{display:inline-block;overflow:hidden;border-radius:50%;background:rgba(56,232,255,.12);border:1px solid rgba(56,232,255,.5)}.avh img{width:100%;display:block}.speaking .avm{animation:bob .35s ease-in-out infinite alternate}@keyframes bob{to{transform:translateY(-4px) scale(1.03)}}
+.mouth2{opacity:0;transform-box:fill-box;transform-origin:center}
+.speaking .mouth2{opacity:1;animation:talk .22s ease-in-out infinite alternate}
+@keyframes float{50%{transform:translateY(-3px)}}
+@keyframes wave{0%,72%,100%{transform:rotate(0)}76%{transform:rotate(-140deg)}80%{transform:rotate(-112deg)}84%{transform:rotate(-140deg)}88%{transform:rotate(-112deg)}92%{transform:rotate(-140deg)}}
+@keyframes wave2{from{transform:rotate(-100deg)}to{transform:rotate(-135deg)}}
+#pav{display:inline-flex}
+.chip.rec,.btn.rec{background:var(--bad);color:#2a0505;border-color:var(--bad)}
+select{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);padding:10px 12px;color:var(--fg)}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes talk{from{transform:scaleY(.6)}to{transform:scaleY(3.4)}}
+#app{position:relative;z-index:1}
+#hud{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 82% 18%,rgba(56,232,255,.12),transparent 55%),radial-gradient(ellipse at 8% 92%,rgba(255,179,71,.07),transparent 50%)}
+#hud::before{content:"";position:absolute;left:0;top:0;bottom:0;width:9px;background:repeating-linear-gradient(180deg,rgba(56,232,255,.28) 0 1px,transparent 1px 14px)}
+#hud::after{content:"";position:absolute;right:0;top:0;bottom:0;width:9px;background:repeating-linear-gradient(180deg,rgba(56,232,255,.18) 0 1px,transparent 1px 28px)}
+.hudring{position:absolute;right:-16vmin;top:10%;width:72vmin;height:72vmin;opacity:.2}
+.hudring.b{left:-20vmin;right:auto;top:auto;bottom:-8%;width:56vmin;height:56vmin;opacity:.12}
+.cn{position:absolute;width:38px;height:38px;border:2px solid rgba(56,232,255,.5)}
+.cn.tl{top:78px;left:14px;border-right:0;border-bottom:0}.cn.tr{top:78px;right:14px;border-left:0;border-bottom:0}
+.cn.bl{bottom:14px;left:14px;border-right:0;border-top:0}.cn.br{bottom:14px;right:14px;border-left:0;border-top:0}
+.scan{position:absolute;left:0;right:0;top:-140px;height:140px;background:linear-gradient(transparent,rgba(56,232,255,.08),transparent);animation:scan 9s linear infinite}
+.tw{transform-box:fill-box;transform-origin:center;animation:twinkle 2.4s ease-in-out infinite}
+@keyframes scan{to{transform:translateY(calc(100vh + 280px))}}
+@keyframes twinkle{50%{transform:scale(.35);opacity:.3}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="boot">
+  <div id="bootlogo"></div>
+  <h1>Jarvis Power Diet</h1>
+  <p id="bootsub">NUTRITION CORE · STANDBY</p>
+  <button class="btn pri" id="bootbtn" data-act="activate">Activate</button>
+</div>
+
+<div id="hud" aria-hidden="true"><svg class="hudring" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="spin"><circle cx="50" cy="50" r="48" fill="none" stroke="#38e8ff" stroke-width=".5" stroke-dasharray="2 3"/><circle cx="50" cy="50" r="42" fill="none" stroke="#38e8ff" stroke-width="1" stroke-dasharray="10 4"/></g><g class="spin2"><circle cx="50" cy="50" r="34" fill="none" stroke="#ffb347" stroke-width=".8" stroke-dasharray="1 4"/><circle cx="50" cy="50" r="27" fill="none" stroke="#38e8ff" stroke-width=".6" stroke-dasharray="6 3"/></g><circle cx="50" cy="50" r="19" fill="none" stroke="#38e8ff" stroke-width="1"/><path d="M50 38L61 58L39 58Z" fill="none" stroke="#38e8ff" stroke-width="1" stroke-linejoin="round"/></svg><svg class="hudring b" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="spin"><circle cx="50" cy="50" r="48" fill="none" stroke="#38e8ff" stroke-width=".5" stroke-dasharray="2 3"/><circle cx="50" cy="50" r="42" fill="none" stroke="#38e8ff" stroke-width="1" stroke-dasharray="10 4"/></g><g class="spin2"><circle cx="50" cy="50" r="34" fill="none" stroke="#ffb347" stroke-width=".8" stroke-dasharray="1 4"/><circle cx="50" cy="50" r="27" fill="none" stroke="#38e8ff" stroke-width=".6" stroke-dasharray="6 3"/></g><circle cx="50" cy="50" r="19" fill="none" stroke="#38e8ff" stroke-width="1"/><path d="M50 38L61 58L39 58Z" fill="none" stroke="#38e8ff" stroke-width="1" stroke-linejoin="round"/></svg><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><div class="scan"></div></div>
+<div id="app">
+  <div class="bar"><span id="barlogo"></span><h1>Jarvis Power Diet</h1><span class="on" data-k="online">Online</span></div>
+  <nav class="nav">
+    <button data-act="go:home" data-v="home" data-k="home">Home</button>
+    <button data-act="go:plan" data-v="plan" data-k="plan">Plan</button>
+    <button data-act="go:rec" data-v="rec" data-k="rec">Records</button>
+    <button data-act="go:set" data-v="set" data-k="set">Settings</button>
+  </nav>
+  <main>
+    <section class="view" id="v-home"></section>
+    <section class="view talk" id="v-talk" hidden><div id="log" aria-live="polite"></div><div id="dock"></div></section>
+    <section class="view" id="v-plan" hidden></section>
+    <section class="view" id="v-rec" hidden></section>
+    <section class="view" id="v-set" hidden></section>
+  </main>
+</div>
+
+<button class="orb" id="orb" hidden aria-label="Jarvis"></button>
+<button class="tab" id="otab" hidden data-act="orbshow">JARVIS</button>
+<div class="panel" id="panel" hidden>
+  <header><span id="pav"></span><b>JARVIS POWER</b><button data-act="orbclose" data-k="min">Minimise</button><button data-act="orbhide" data-k="hide">Hide</button></header>
+  <div id="olog"></div>
+  <div class="inrow"><input type="text" id="oin" autocomplete="off"><button class="chip" id="omic" data-k="mic">Mic</button><button class="btn pri" id="osend" data-act="osend">Send</button></div>
+</div>
+<div class="modal" id="modal" hidden><div class="card" id="modalbox"></div></div>
+<div id="toast" hidden></div>
+<script>
+'use strict';
+/* ===== helpers & state ===== */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const KEY='jpd.v1';
+let memDB=null, storeOK=true;
+const fresh=()=>({profile:null,days:{},weeks:{},settings:{save:true,voice:false,sound:false,mic:false,roam:true},orb:{x:null,y:null,hidden:false}});
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){storeOK=false}return memDB}
+let DB=load()||fresh();
+function save(){memDB=DB;if(DB.settings.save===false)return;try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){storeOK=false}}
+const ymd=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d)};
+const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
+const lang=()=>DB.profile?.lang||'hn';
+function sir(){const g=DB.profile?.gender;if(!g)return'';const hi=lang()==='hi';return g==='f'?(hi?'मैम':"Ma'am"):(hi?'सर':'Sir')}
+function ad(){return DB.profile?.name||''}
+function T(o){let s=o[lang()]??o.hn??o.en??'';return s.replaceAll('{n}',ad()).replaceAll('{name}',DB.profile?.name||'')}
+function fmtDate(s,long){const d=new Date(s+'T12:00:00');return d.toLocaleDateString(lang()==='hi'?'hi-IN':'en-IN',long?{weekday:'long',day:'numeric',month:'short'}:{weekday:'short',day:'numeric',month:'short'})}
+let toastT;
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
+
+/* ===== reactor logo ===== */
+function reactor(size){
+  let ticks='';for(let i=0;i<24;i++){const a=i*15*Math.PI/180;ticks+=`<line x1="${50+43*Math.cos(a)}" y1="${50+43*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#38e8ff" stroke-width="1.5"/>`}
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <g class="spin">${ticks}<circle cx="50" cy="50" r="40" fill="none" stroke="#38e8ff" stroke-width="2" stroke-dasharray="14 6"/></g>
+  <g class="spin2"><circle cx="50" cy="50" r="31" fill="none" stroke="#ffb347" stroke-width="1.5" stroke-dasharray="4 5"/></g>
+  <circle cx="50" cy="50" r="24" fill="rgba(56,232,255,.12)" stroke="#38e8ff" stroke-width="2"/>
+  <polygon class="glow" points="50,33 65,59 35,59" fill="rgba(56,232,255,.35)" stroke="#d6f6ff" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="50" cy="50" r="5" fill="#d6f6ff" class="glow"/></svg>`}
+
+/* ===== sound ===== */
+let AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+function tone(f1,f2,dur,type='sine',vol=.05,delay=0){const a=ac();if(!a)return;const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.03)}
+function sfx(k){if(!DB.settings.sound)return;
+  if(k==='click'){tone(1500,2300,.07,'square',.02);tone(700,1100,.09,'sine',.04,.02)}
+  else if(k==='confirm'){tone(600,900,.12,'sine',.05);tone(900,1350,.14,'sine',.05,.1);tone(1350,1800,.2,'sine',.04,.2)}
+  else if(k==='open'){tone(400,1200,.18,'triangle',.05)}
+  else if(k==='err'){tone(320,160,.25,'sawtooth',.04)}
+  else if(k==='boot'){tone(90,1600,.9,'sawtooth',.03);tone(800,1600,.15,'sine',.05,.8);tone(1200,2400,.3,'sine',.04,.95)}}
+document.addEventListener('click',e=>{if(e.target.closest('button'))sfx('click')},true);
+
+/* ===== Avatar: male = user's own supplied cartoon (embedded), female = matching original chibi ===== */
+const MALE_IMG="data:image/png;base64,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";
+function avatar(g,size,mode){const f=g==='f',full=mode!=='head';
+  if(!f){if(!full)return `<span class="avh" style="width:${size}px;height:${size}px"><img src="${MALE_IMG}" alt="" draggable="false"></span>`;
+    return `<img class="float avm" src="${MALE_IMG}" alt="" draggable="false" style="height:${size}px;width:auto">`}
+  const hair='#2a1812',skin='#f1c9a0',skinD='#d9a27a',hood='#a8325e',hoodD='#802248',jeans='#27344f',cy='#38e8ff';
+  const vb=full?'0 0 60 120':'10 2 40 40',w=full?Math.round(size/2):size,h=size;
+  const legs=`<rect x="22" y="78" width="7" height="30" rx="3" fill="${jeans}"/><rect x="31" y="78" width="7" height="30" rx="3" fill="${jeans}"/>`;
+  const shoes=`<path d="M19 108Q19 105 24 105L29.5 105L29.5 112L17 112Q17 110 19 108Z" fill="#f3f3f3" stroke="#333" stroke-width="1"/><path d="M41 108Q41 105 36 105L30.5 105L30.5 112L43 112Q43 110 41 108Z" fill="#f3f3f3" stroke="#333" stroke-width="1"/>`;
+  const body=`<path d="M17 52Q30 46 43 52L45 84L15 84Z" fill="${hood}"/><path d="M22 50Q30 58 38 50L36 47L24 47Z" fill="${hoodD}"/><rect x="23" y="70" width="14" height="9" rx="3" fill="${hoodD}" fill-opacity=".6"/>`;
+  const arms=`<path d="M17 53Q10 64 15 78L20 77Q17 66 21 56Z" fill="${hood}"/><path d="M43 53Q50 64 45 78L40 77Q43 66 39 56Z" fill="${hood}"/><circle cx="17.5" cy="79" r="3" fill="${skin}"/><circle cx="42.5" cy="79" r="3" fill="${skin}"/>`;
+  const backHair=`<path d="M12 28C10 6 50 6 48 28C50 42 52 52 50 64L40 60L20 60L10 64C8 52 10 42 12 28Z" fill="${hair}"/>`;
+  const neck=`<rect x="26" y="42" width="8" height="8" fill="${skinD}"/>`;
+  const head=`<ellipse cx="30" cy="27" rx="16" ry="17.5" fill="${skin}"/><ellipse cx="14.2" cy="29" rx="2" ry="3" fill="${skin}"/><ellipse cx="45.8" cy="29" rx="2" ry="3" fill="${skin}"/>`;
+  const fringe=`<path d="M13.5 26C12 4 48 4 46.5 26C44 18 38 12 33 12C30 17 20 18 13.5 26Z" fill="${hair}"/>`;
+  const face=`<path d="M20 22.5Q23.5 20.5 27 22M33 22Q36.5 20.5 40 22.5" fill="none" stroke="${hair}" stroke-width="1.3" stroke-linecap="round"/>
+  <g class="blink"><ellipse cx="23.5" cy="27.5" rx="3.3" ry="3.8" fill="#fff"/><ellipse cx="36.5" cy="27.5" rx="3.3" ry="3.8" fill="#fff"/><circle cx="24" cy="28" r="2.2" fill="#3a2418"/><circle cx="37" cy="28" r="2.2" fill="#3a2418"/><circle cx="24.7" cy="27.2" r=".7" fill="#fff"/><circle cx="37.7" cy="27.2" r=".7" fill="#fff"/><path d="M20 25.6Q23.5 23 27 25.6M33 25.6Q36.5 23 40 25.6" fill="none" stroke="#1a0e0a" stroke-width="1"/></g>
+  <path d="M30 30Q29 33 30.4 33.6" fill="none" stroke="${skinD}" stroke-width=".9" stroke-linecap="round"/><ellipse cx="20" cy="33" rx="2.6" ry="1.5" fill="#f08080" fill-opacity=".35"/><ellipse cx="40" cy="33" rx="2.6" ry="1.5" fill="#f08080" fill-opacity=".35"/>
+  <path d="M26 37Q30 40 34 37" fill="none" stroke="#b3405a" stroke-width="1.4" stroke-linecap="round"/><ellipse class="mouth2" cx="30" cy="38" rx="3" ry="1.3" fill="#5a1e2a"/>`;
+  const base=full?`<ellipse cx="30" cy="114" rx="20" ry="3" fill="${cy}" fill-opacity=".14" stroke="${cy}" stroke-width=".7" stroke-dasharray="3 2"/>`:'';
+  return `<svg width="${w}" height="${h}" viewBox="${vb}" aria-hidden="true" focusable="false">${base}<g class="${full?'float':''}">${backHair}${legs}${shoes}${body}${arms}${neck}${head}${fringe}${face}</g></svg>`}
+
+/* ===== voice ===== */
+function voiceGender(v){const n=v.name;if(/female|zira|heera|swara|neerja|priya|samantha|susan|hazel|kalpana|aria|jenny|emma|karen|veena|tessa|lekha|natasha|libby|sonia/i.test(n))return'f';
+  if(/(^|[^a-z])male|david|daniel|mark|ravi|hemant|prabhat|rishi|james|george|guy|ryan|alex|madhur|prabhas|ryan/i.test(n))return'm';return null}
+function pickVoice(){if(!window.speechSynthesis)return null;const vs=speechSynthesis.getVoices();if(!vs.length)return null;
+  const sv=DB.settings.voiceURI;if(sv){const f=vs.find(v=>v.voiceURI===sv);if(f)return f}
+  const hi=lang()==='hi',g=DB.profile?.gender;const pool=vs.filter(v=>v.lang.toLowerCase().startsWith(hi?'hi':'en'));if(!pool.length)return null;
+  const sc=v=>{let s=0;if(voiceGender(v)===g)s+=4;else if(voiceGender(v))s-=3;if(/google|neural|natural|online|network/i.test(v.name+v.voiceURI)||v.localService===false)s+=2;if(/^(hi-IN|en-IN)$/i.test(v.lang))s+=1;return s};
+  return pool.map(v=>[sc(v),v]).sort((a,b)=>b[0]-a[0])[0][1]}
+let spk=0;
+function speak(text,cancel){if(!DB.settings.voice||!('speechSynthesis' in window))return;
+  try{if(cancel){speechSynthesis.cancel();spk=0;document.body.classList.remove('speaking')}
+    const u=new SpeechSynthesisUtterance(String(text).replace(/[\u{1F300}-\u{1FAFF}•·→]/gu,' ').slice(0,300));
+    u.lang=lang()==='hi'?'hi-IN':'en-IN';const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}
+    const g=DB.profile?.gender,match=v&&voiceGender(v)===g;u.pitch=match?1:(g==='f'?1.12:g==='m'?.9:1);u.rate=.96;
+    u.onstart=()=>{spk++;document.body.classList.add('speaking')};const end=()=>{spk=Math.max(0,spk-1);if(!spk)document.body.classList.remove('speaking')};u.onend=end;u.onerror=end;
+    speechSynthesis.speak(u)}catch(e){}}
+let recog=null;
+function listen(onText,onErr,onState){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return onErr('unsupported');
+  try{if(recog){try{recog.stop()}catch(e){}}const r=new SR();recog=r;r.lang=lang()==='en'?'en-IN':'hi-IN';r.interimResults=false;r.maxAlternatives=1;
+    r.onstart=()=>onState&&onState(true);r.onresult=e=>onText(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'error');r.onend=()=>onState&&onState(false);r.start()}catch(e){onErr(e.name||'error')}}
+function micMsg(e){const m={
+  'not-allowed':{en:'Microphone is blocked. In Chrome tap the lock icon near the address bar, open Permissions, and allow Microphone. Then try again.',hi:'माइक्रोफ़ोन बंद है। Chrome में एड्रेस बार के पास लॉक आइकन दबाएँ, Permissions में Microphone को Allow करें, फिर दोबारा कोशिश करें।',hn:'Microphone blocked hai. Chrome me address bar ke paas lock icon dabayein, Permissions me Microphone ko Allow karein, phir dobara try karein.'},
+  'no-speech':{en:'I did not hear anything. Please try again.',hi:'मुझे कुछ सुनाई नहीं दिया। फिर से बोलिए।',hn:'Mujhe kuch sunai nahi diya. Phir se boliye.'},
+  'network':{en:'Voice typing needs internet. Please check your connection.',hi:'वॉइस टाइपिंग के लिए इंटरनेट चाहिए। कनेक्शन देखें।',hn:'Voice typing ke liye internet chahiye. Connection check karein.'},
+  'audio-capture':{en:'No microphone was found on this device.',hi:'इस डिवाइस में माइक्रोफ़ोन नहीं मिला।',hn:'Is device me microphone nahi mila.'},
+  'unsupported':{en:'This browser does not support voice input. Please use Chrome.',hi:'यह ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता। कृपया Chrome इस्तेमाल करें।',hn:'Ye browser voice input support nahi karta. Please Chrome use karein.'}}[e];
+  return T(m||{en:'Microphone problem ('+e+'). Please type instead.',hi:'माइक्रोफ़ोन में समस्या ('+e+')। कृपया टाइप करें।',hn:'Microphone me problem ('+e+'). Please type karein.'})}
+async function doMic(onText,btn){
+  if(!DB.settings.mic){if(!await askPermission({en:'Allow Jarvis to use your microphone to hear you?',hi:'क्या जार्विस आपको सुनने के लिए माइक्रोफ़ोन इस्तेमाल कर सकता है?',hn:'Kya Jarvis aapko sunne ke liye microphone use kar sakta hai?'}))return;DB.settings.mic=true;save()}
+  try{speechSynthesis.cancel()}catch(e){}
+  const lbl=btn.textContent;listen(onText,err=>toast(micMsg(err)),on=>{btn.textContent=on?T({en:'Listening...',hi:'सुन रहा हूँ...',hn:'Sun raha hoon...'}):lbl;btn.classList.toggle('rec',on)})}
+
+/* ===== permission modal ===== */
+function askPermission(q){return new Promise(res=>{const m=$('#modal'),b=$('#modalbox');
+  b.innerHTML=`<div class="eyebrow">${esc(T({en:'Permission needed',hi:'अनुमति चाहिए',hn:'Permission chahiye'}))}</div><p>${esc(T(q))}</p><div class="seg"><button class="btn pri" id="pyes">${esc(T({en:'Allow',hi:'अनुमति दें',hn:'Allow karein'}))}</button><button class="btn" id="pno">${esc(T({en:'Deny',hi:'मना करें',hn:'Deny karein'}))}</button></div>`;
+  m.hidden=false;sfx('open');$('#pyes').onclick=()=>{m.hidden=true;res(true)};$('#pno').onclick=()=>{m.hidden=true;res(false)};$('#pyes').focus()})}
+
+/* ===== food database: id, slot, diet(v/e/n), flags, kcal, protein, qty, unit, en, hi, keywords =====
+ flags: l=light, f=fried/heavy, g=gain-friendly, sw=sugar-heavy, sp=spicy */
+const D=[];
+(function(){const a=(id,s,t,f,k,p,q,u,n,h,kw)=>D.push({id,s,t,f,k,p,q,u,n,h,kw});
+a('b1','b','v','l',300,9,1,'bowl','Poha with peanuts','पोहा मूंगफली के साथ','poha peanut moongfali');
+a('b2','b','v','l',280,10,1,'bowl','Vegetable oats upma','वेज ओट्स उपमा','oats upma');
+a('b3','b','v','l',330,19,2,'pcs','Moong dal chilla with curd','मूंग दाल चीला और दही','moong dal chilla curd dahi dairy');
+a('b4','b','v','fg',420,15,1,'pcs','Paneer paratha with curd','पनीर पराठा और दही','paneer paratha curd dahi dairy');
+a('b5','b','e','',330,20,1,'plate','Egg bhurji with 2 toast','अंडा भुर्जी और 2 टोस्ट','egg anda bhurji toast');
+a('b6','b','v','g sw',380,14,1,'glass','Banana peanut-butter shake','केला पीनट बटर शेक','banana shake peanut butter milk dairy');
+a('b7','b','v','l',280,10,3,'pcs','Idli with sambar','इडली सांभर','idli sambar south');
+a('b8','b','e','',320,19,1,'plate','Vegetable omelette with roti','सब्ज़ी ऑमलेट और रोटी','egg omelette anda roti');
+a('s1','s1','v','l',110,1,1,'bowl','Seasonal fruit bowl','मौसमी फलों का कटोरा','fruit apple papaya banana');
+a('s2','s1','v','',190,9,1,'handful','Roasted chana with nuts','भुना चना और मेवे','chana nuts peanut');
+a('s3','s1','v','l',150,9,1,'bowl','Sprouts with buttermilk','स्प्राउट्स और छाछ','sprouts chaas buttermilk moong dairy');
+a('s4','s1','e','',150,12,2,'pcs','Boiled eggs','उबले अंडे','egg anda boiled');
+a('s5','s1','v','g sw',230,6,1,'handful','Almonds, walnuts and dates','बादाम अखरोट और खजूर','almond badam walnut akhrot dates nuts');
+a('l1','l','v','l',520,20,2,'roti','Dal, sabzi, salad with roti','दाल सब्ज़ी सलाद और रोटी','dal sabzi roti salad');
+a('l2','l','v','sp g',560,18,1,'plate','Rajma chawal','राजमा चावल','rajma rice chawal');
+a('l3','l','v','g',520,26,2,'roti','Paneer bhurji with roti and salad','पनीर भुर्जी रोटी और सलाद','paneer bhurji roti dairy');
+a('l4','l','n','sp',580,38,1,'plate','Chicken curry with rice and salad','चिकन करी चावल और सलाद','chicken curry rice');
+a('l5','l','v','l',380,14,1,'bowl','Vegetable khichdi with curd','सब्ज़ी खिचड़ी और दही','khichdi curd dahi dairy');
+a('l6','l','v','',500,28,1,'plate','Soya chunk pulao with raita','सोया चंक पुलाव और रायता','soya chunks pulao raita dairy');
+a('l7','l','n','sp',540,34,1,'plate','Fish curry with rice','फिश करी चावल','fish curry rice machli');
+a('l8','l','e','sp',500,26,2,'roti','Egg curry with roti','अंडा करी और रोटी','egg curry anda roti');
+a('t1','s2','v','l',120,4,1,'bowl','Roasted makhana with green tea','भुना मखाना और ग्रीन टी','makhana tea');
+a('t2','s2','v','l',160,10,1,'bowl','Sprouts chaat','स्प्राउट्स चाट','sprouts chaat moong');
+a('t3','s2','v','l',170,8,1,'bowl','Curd with fruit','फल के साथ दही','curd dahi fruit dairy');
+a('t4','s2','v','g',230,16,1,'plate','Grilled paneer tikka','ग्रिल्ड पनीर टिक्का','paneer tikka dairy');
+a('t5','s2','n','l',150,15,1,'bowl','Clear chicken soup','क्लियर चिकन सूप','chicken soup');
+a('t6','s2','v','g',260,9,2,'slice','Peanut-butter toast with banana','पीनट बटर टोस्ट और केला','peanut butter toast banana');
+a('d1','d','v','l',420,18,2,'roti','Moong dal soup, sabzi and roti','मूंग दाल सूप सब्ज़ी और रोटी','moong dal soup sabzi roti');
+a('d2','d','v','g',480,22,2,'roti','Palak paneer with roti','पालक पनीर और रोटी','palak paneer spinach roti dairy');
+a('d3','d','n','',450,40,1,'plate','Grilled chicken with sauteed vegetables','ग्रिल्ड चिकन और सब्ज़ियाँ','chicken grilled vegetables');
+a('d4','d','e','l',380,26,1,'plate','Egg-white omelette, veggies and roti','एग-व्हाइट ऑमलेट सब्ज़ी रोटी','egg omelette anda roti');
+a('d5','d','v','',440,24,2,'roti','Soya or tofu stir-fry with roti','सोया या टोफू स्टर-फ्राई और रोटी','soya tofu stir fry roti');
+a('d6','d','v','l',380,14,1,'bowl','Veg dalia (broken wheat) with dal','सब्ज़ी दलिया और दाल','dalia daliya dal');
+a('d7','d','n','',420,36,1,'plate','Fish tikka with salad','फिश टिक्का और सलाद','fish tikka machli salad');
+a('d8','d','v','l',400,16,2,'roti','Lauki sabzi, dal and roti','लौकी सब्ज़ी दाल और रोटी','lauki dal roti');})();
+const DBY=Object.fromEntries(D.map(d=>[d.id,d]));
+const UN={roti:{en:'roti',hi:'रोटी',hn:'roti'},bowl:{en:'bowl',hi:'कटोरी',hn:'bowl'},glass:{en:'glass',hi:'गिलास',hn:'glass'},pcs:{en:'pcs',hi:'पीस',hn:'pcs'},plate:{en:'plate',hi:'प्लेट',hn:'plate'},handful:{en:'handful',hi:'मुट्ठी',hn:'handful'},slice:{en:'slice',hi:'स्लाइस',hn:'slice'}};
+const SL3=[['b',.30,'08:30'],['l',.38,'13:30'],['d',.32,'20:00']];
+const SL5=[['b',.25,'08:00'],['s1',.10,'11:00'],['l',.30,'13:30'],['s2',.10,'17:00'],['d',.25,'20:00']];
+const SLN={b:{en:'Breakfast',hi:'नाश्ता',hn:'Breakfast'},s1:{en:'Mid-morning snack',hi:'सुबह का स्नैक',hn:'Mid-morning snack'},l:{en:'Lunch',hi:'दोपहर का खाना',hn:'Lunch'},s2:{en:'Evening snack',hi:'शाम का स्नैक',hn:'Evening snack'},d:{en:'Dinner',hi:'रात का खाना',hn:'Dinner'}};
+const GOALN={loss:{en:'Weight loss',hi:'वज़न घटाना',hn:'Weight loss'},gain:{en:'Weight gain',hi:'वज़न बढ़ाना',hn:'Weight gain'},muscle:{en:'Build muscle',hi:'मसल बनाना',hn:'Muscle banana'},glow:{en:'Healthy fuller face & body',hi:'सेहतमंद भरा चेहरा और शरीर',hn:'Healthy bhara hua face & body'}};
+const dishName=d=>lang()==='hi'?d.h:d.n;
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rngOf(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const STOP=['none','no','nahi','koi nahi','nothing','kuch bhi','anything','कुछ भी','नहीं','कोई नहीं','skip'];
+function tokens(s){return String(s||'').toLowerCase().split(/[,;\n/]+|\s+(?:and|aur|और)\s+/).map(x=>x.trim()).filter(x=>x.length>=3&&!STOP.includes(x))}
+const kwOf=d=>(d.kw+' '+d.n+' '+d.h).toLowerCase();
+function ctxOf(o){const p=DB.profile,c=p.conds||[];return{diet:p.diet||'v',sugar:c.includes('sugar'),acid:c.includes('acid'),
+  avoid:tokens((p.allergy||'')+','+(o?.avoid||'')),wish:tokens(o?.wishes),light:o?.health==='sick'}}
+function allowed(d,c,relax){if(d.t==='e'&&c.diet==='v')return false;if(d.t==='n'&&c.diet!=='n')return false;
+  if(c.avoid.some(t=>kwOf(d).includes(t)))return false;
+  if(!relax){if(c.sugar&&d.f.includes('sw'))return false;if(c.acid&&d.f.includes('sp'))return false}return true}
+function weightSeries(){const m={},p=DB.profile;if(p?.joined&&p.weight0)m[p.joined]=p.weight0;
+  Object.values(DB.days).forEach(r=>{if(r.weight)m[r.date]=r.weight});Object.values(DB.weeks).forEach(w=>{if(w.weight)m[w.start]=w.weight});
+  return Object.entries(m).map(([d,w])=>({d,w})).sort((a,b)=>a.d<b.d?-1:1)}
+function slope(date){const pts=weightSeries().filter(x=>x.d<=date&&daysBetween(x.d,date)<=28);if(pts.length<2)return null;
+  const f=pts[0],l=pts[pts.length-1],span=daysBetween(f.d,l.d);if(span<5)return null;return(l.w-f.w)/(span/7)}
+function weekPlanFor(date){for(const w of Object.values(DB.weeks)){const i=daysBetween(w.start,date);if(i>=0&&i<7&&w.days?.[i])return w.days[i]}return null}
+const planFor=d=>DB.days[d]?.plan||weekPlanFor(d);
+function recentIds(date,extra){const ids=[...(extra||[])];for(let i=1;i<=3;i++){const p=planFor(addDays(date,-i));if(p)p.meals.forEach(m=>ids.push(m.id))}return ids}
+
+/* targets with adaptation */
+function adjustFor(goal,date){const p=DB.profile,ins=[];if(!p.adj||p.adj.goal!==goal)p.adj={goal,val:0,at:null};
+  const s=slope(date);
+  if(s!=null){const sg=(s>0?'+':'')+s.toFixed(1);
+    ins.push({en:`Weight trend: ${sg} kg per week.`,hi:`वज़न का रुझान: ${sg} किलो प्रति सप्ताह।`,hn:`Weight trend: ${sg} kg per week.`});
+    if(!p.adj.at||daysBetween(p.adj.at,date)>=6){let ch=0;
+      if(goal==='loss'){if(s>-0.1)ch=-120;else if(s<-1)ch=150}else{if(s<0.05)ch=150;else if(s>0.8)ch=-150}
+      if(ch){p.adj.val=clamp(p.adj.val+ch,-400,400);p.adj.at=date;const t=(ch>0?'+':'')+ch;
+        ins.push({en:`Your progress was off target, so I changed calories by ${t}.`,hi:`आपकी प्रगति लक्ष्य से अलग थी, इसलिए कैलोरी ${t} बदली गई।`,hn:`Aapki progress target se alag thi, isliye calories ${t} change ki gayi.`})}}}
+  return{val:p.adj.val,ins}}
+function lowEnergy(date){const r=[1,2,3].map(i=>DB.days[addDays(date,-i)]).filter(x=>x&&x.energy);return r.length>=2&&r.every(x=>x.energy<=2)}
+function targetFor(o){const p=DB.profile,w=o.weight||p.weight,male=p.gender==='m';
+  const bmr=10*w+6.25*p.height-5*p.age+(male?5:-161);
+  const af={low:1.3,mod:1.5,high:1.7}[o.activity||p.activity]||1.4;let t=bmr*af;
+  let delta={loss:-450,gain:400,muscle:300,glow:300}[o.goal]||0;
+  if(p.age<18&&o.goal==='loss')delta=-150;
+  if(o.health==='sick'){t*=.9;delta=Math.min(delta,0)}
+  const a=adjustFor(o.goal,o.date);const ins=[...a.ins];
+  let extra=0;if(lowEnergy(o.date)){extra=100;ins.push({en:'Your energy was low for a few days, so I added 100 kcal.',hi:'कुछ दिनों से आपकी ऊर्जा कम थी, इसलिए 100 कैलोरी जोड़ी।',hn:'Kuch dinon se aapki energy low thi, isliye 100 kcal add ki.'})}
+  const floor=p.age<18?1800:male?1500:1200;
+  const kcal=Math.round(clamp(t+delta+a.val+extra,floor,5000)/10)*10;
+  const pr={loss:1.6,gain:1.4,muscle:1.9,glow:1.3}[o.goal]||1.4;
+  return{kcal,protein:Math.round(w*pr),water:(Math.round(w*35/100)/10).toFixed(1),ins}}
+
+/* pick & portion */
+function pickDish(slot,c,goal,rng,recent,bad){
+  let pool=D.filter(d=>d.s===slot&&allowed(d,c,false));
+  if(c.light){const l=pool.filter(d=>d.f.includes('l'));if(l.length)pool=l}
+  if(!pool.length)pool=D.filter(d=>d.s===slot&&allowed(d,c,true));
+  if(!pool.length)pool=D.filter(d=>d.s===slot);
+  const sc=d=>{let s=rng()*2;if(c.wish.some(t=>kwOf(d).includes(t)))s+=6;if(recent.includes(d.id))s-=5;
+    if(goal==='loss'&&d.f.includes('f'))s-=3;if(goal==='muscle')s+=d.p/d.k*40;
+    if((goal==='gain'||goal==='glow')&&d.f.includes('g'))s+=2.5;if(c.light&&d.f.includes('l'))s+=3;if(bad&&d.f.includes('l'))s+=2;return s};
+  return pool.map(d=>[sc(d),d]).sort((a,b)=>b[0]-a[0])[0][1]}
+function buildMeals(o,kcal,rng,recent){const c=ctxOf(o),slots=o.meals===5?SL5:SL3,used=[...recent],out=[];
+  slots.forEach(([s,share,time])=>{const d=pickDish(s,c,o.goal,rng,used,o.bad);used.push(d.id);c.wish=c.wish.filter(t=>!kwOf(d).includes(t));
+    let v=d.q*clamp(kcal*share/d.k,.5,2.5);v=d.q>=2?Math.max(1,Math.round(v)):Math.max(.5,Math.round(v*2)/2);
+    const m=v/d.q;out.push({slot:s,time,id:d.id,qty:v,k:Math.round(d.k*m),p:Math.round(d.p*m)})});
+  return out}
+const NT={
+ water:w=>({en:`Drink about ${w} L of water through the day.`,hi:`दिन भर में लगभग ${w} लीटर पानी पिएँ।`,hn:`Din bhar me lagbhag ${w} litre paani piyein.`}),
+ loss:{en:'Keep dinner light, walk 30 minutes and avoid sugary drinks.',hi:'रात का खाना हल्का रखें, 30 मिनट टहलें और मीठे पेय से बचें।',hn:'Dinner halka rakhein, 30 minute walk karein aur meethe drinks se bachein.'},
+ gain:{en:'Do not skip meals. Add a glass of milk or a banana if you are still hungry.',hi:'कोई भोजन न छोड़ें। भूख लगे तो दूध या केला लें।',hn:'Koi meal skip na karein. Bhookh lage to doodh ya kela lein.'},
+ muscle:{en:'Eat protein within 1 hour after training and sleep 7-8 hours.',hi:'वर्कआउट के 1 घंटे के अंदर प्रोटीन लें और 7-8 घंटे सोएँ।',hn:'Workout ke 1 ghante ke andar protein lein aur 7-8 ghante soyein.'},
+ glow:{en:'For a healthy, fuller face: steady calories, nuts, fruit, enough water and 7-8 hours of sleep.',hi:'सेहतमंद भरे चेहरे के लिए: नियमित कैलोरी, मेवे, फल, भरपूर पानी और 7-8 घंटे की नींद।',hn:'Healthy bhare hue face ke liye: regular calories, nuts, fruit, bharpoor paani aur 7-8 ghante ki neend.'},
+ sugar:{en:'Diabetes: sweet items are left out. Eat on time and do not skip meals.',hi:'डायबिटीज़: मीठी चीज़ें हटाई गई हैं। समय पर खाएँ और भोजन न छोड़ें।',hn:'Diabetes: meethi cheezein hata di gayi hain. Time par khayein, meal skip na karein.'},
+ bp:{en:'High BP: keep salt low and skip pickle and papad.',hi:'हाई बीपी: नमक कम रखें और अचार-पापड़ से बचें।',hn:'High BP: namak kam rakhein aur achar-papad se bachein.'},
+ acid:{en:'Acidity: spicy dishes are left out. Do not stay hungry for long.',hi:'एसिडिटी: तीखे व्यंजन हटाए गए हैं। ज़्यादा देर भूखे न रहें।',hn:'Acidity: teekhe dishes hata diye gaye hain. Zyada der bhookhe na rahein.'},
+ thyroid:{en:'Thyroid: take your medicine exactly as your doctor advised.',hi:'थायरॉइड: दवा वैसे ही लें जैसे डॉक्टर ने बताया है।',hn:'Thyroid: dawai bilkul waise lein jaise doctor ne batayi hai.'},
+ other:{en:'Please check this plan with your doctor for your health condition.',hi:'अपनी स्वास्थ्य स्थिति के लिए यह प्लान डॉक्टर को दिखाएँ।',hn:'Apni health condition ke liye ye plan doctor ko dikhayein.'},
+ sick:{en:'You are unwell, so I picked light food. If fever or pain lasts beyond 2 days, see a doctor.',hi:'आप अस्वस्थ हैं, इसलिए हल्का खाना चुना है। बुखार या दर्द 2 दिन से ज़्यादा रहे तो डॉक्टर को दिखाएँ।',hn:'Aap unwell hain, isliye halka khana chuna hai. Fever ya dard 2 din se zyada rahe to doctor ko dikhayein.'},
+ sleep:{en:'You slept under 6 hours. Try to sleep earlier tonight.',hi:'आप 6 घंटे से कम सोए। आज रात जल्दी सोने की कोशिश करें।',hn:'Aap 6 ghante se kam soye. Aaj raat jaldi sone ki koshish karein.'},
+ minor:{en:'You are under 18: stay in a healthy range and talk to a doctor before any weight loss.',hi:'आप 18 से कम उम्र के हैं: स्वस्थ सीमा में रहें और वज़न घटाने से पहले डॉक्टर से बात करें।',hn:'Aap 18 se kam age ke hain: healthy range me rahein aur weight loss se pehle doctor se baat karein.'},
+ disc:{en:'This is general guidance, not medical advice.',hi:'यह सामान्य मार्गदर्शन है, चिकित्सीय सलाह नहीं।',hn:'Ye general guidance hai, medical advice nahi.'}};
+function notesFor(o,pl){const p=DB.profile,c=p.conds||[],n=[NT.water(pl.water),NT[o.goal]];
+  ['sugar','bp','acid','thyroid','other'].forEach(k=>{if(c.includes(k))n.push(NT[k])});
+  if(o.health==='sick')n.push(NT.sick);if(o.sleep&&o.sleep<6)n.push(NT.sleep);if(p.age<18)n.push(NT.minor);
+  const miss=tokens(o.wishes).filter(t=>!D.some(d=>kwOf(d).includes(t))).slice(0,2);
+  miss.forEach(t=>n.push({en:`"${t}" is not in my food list yet, so I picked close options.`,hi:`"${t}" अभी मेरी खाने की सूची में नहीं है, इसलिए मिलते-जुलते विकल्प चुने।`,hn:`"${t}" abhi meri food list me nahi hai, isliye milte-julte options chune.`}));
+  n.push(NT.disc);return n}
+function genPlan(o,tg,rng,recent){const meals=buildMeals(o,tg.kcal,rng,recent);
+  const pl={date:o.date,goal:o.goal,target:tg.kcal,protein:tg.protein,water:tg.water,meals,total:meals.reduce((a,m)=>a+m.k,0),got:meals.reduce((a,m)=>a+m.p,0)};
+  pl.notes=notesFor(o,pl);return pl}
+
+/* ===== console: say / ask ===== */
+const LBL={online:{en:'Online',hi:'ऑनलाइन',hn:'Online'},home:{en:'Home',hi:'होम',hn:'Home'},plan:{en:'Plan',hi:'प्लान',hn:'Plan'},rec:{en:'Records',hi:'रिकॉर्ड',hn:'Records'},set:{en:'Settings',hi:'सेटिंग्स',hn:'Settings'},min:{en:'Minimise',hi:'छोटा करें',hn:'Minimise'},hide:{en:'Hide',hi:'छुपाएँ',hn:'Hide'},mic:{en:'Mic',hi:'माइक',hn:'Mic'}};
+const X={ok:{en:'OK',hi:'ठीक है',hn:'OK'},skip:{en:'Skip',hi:'छोड़ें',hn:'Skip'},conf:{en:'Confirm',hi:'पक्का करें',hn:'Confirm karein'}};
+let FID=0,pending=null;
+function bubble(who,text,box){const b=document.createElement('div');b.className='b '+who;b.textContent=text;(box||$('#log')).appendChild(b);(box||$('#log')).scrollTop=1e9;return b}
+async function say(o){const t=typeof o==='string'?o:T(o);bubble('j',t);speak(t);sfx('open');await sleep(350)}
+function abortFlow(){if(pending){pending.rej('abort');pending=null}}
+async function runFlow(fn){abortFlow();const id=++FID;try{await fn(id)}catch(e){if(e!=='abort')console.error(e)}}
+async function ask(c){const id=FID;await say(c.q);if(id!==FID)throw'abort';
+  return new Promise((res,rej)=>{pending={rej};const dock=$('#dock');dock.innerHTML='';
+    const done=(v,label)=>{pending=null;try{speechSynthesis.cancel()}catch(e){}bubble('u',label);dock.innerHTML='';sfx('confirm');res(v)};
+    if(c.type==='choice'){c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.textContent=T(o.l);b.onclick=()=>done(o.v,T(o.l));dock.appendChild(b)});return}
+    if(c.type==='multi'){const sel=new Set(c.def||[]);c.opts.forEach(o=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',String(sel.has(o.v)));b.textContent=T(o.l);
+      b.onclick=()=>{if(sel.has(o.v)){sel.delete(o.v)}else{if(o.x)sel.clear();else c.opts.filter(z=>z.x).forEach(z=>sel.delete(z.v));sel.add(o.v)}
+        $$('.chip',dock).forEach((e,i)=>e.setAttribute('aria-pressed',sel.has(c.opts[i].v)))};dock.appendChild(b)});
+      const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.conf);
+      ok.onclick=()=>done([...sel],[...sel].map(v=>T(c.opts.find(o=>o.v===v).l)).join(', ')||'-');dock.appendChild(ok);return}
+    const row=document.createElement('div');row.className='inrow';const inp=document.createElement('input');
+    const num=c.type==='num';inp.type=num?'number':'text';if(num){inp.inputMode='decimal';inp.step='any'}inp.placeholder=c.ph?T(c.ph):'';inp.autocomplete='off';
+    const err=document.createElement('div');err.className='err';err.hidden=true;
+    const go=()=>{const raw=inp.value.trim();if(!raw){if(c.skip)return done(null,T(X.skip));return}
+      if(num){const v=parseFloat(raw.replace(',','.'));if(isNaN(v)||v<c.min||v>c.max){err.textContent=T({en:`Please enter a number between ${c.min} and ${c.max}.`,hi:`कृपया ${c.min} से ${c.max} के बीच संख्या लिखें।`,hn:`Please ${c.min} se ${c.max} ke beech number likhein.`});err.hidden=false;sfx('err');return}done(v,String(v))}else done(raw.slice(0,120),raw.slice(0,120))};
+    inp.onkeydown=e=>{if(e.key==='Enter')go()};const ok=document.createElement('button');ok.className='btn pri';ok.textContent=T(X.ok);ok.onclick=go;row.append(inp,ok);
+    if(!num){const m=document.createElement('button');m.className='chip';m.textContent=T({en:'Mic',hi:'माइक',hn:'Mic'});m.onclick=()=>doMic(t=>{inp.value=t},m);row.appendChild(m)}
+    if(c.skip){const s=document.createElement('button');s.className='chip';s.textContent=T(X.skip);s.onclick=()=>done(null,T(X.skip));row.appendChild(s)}
+    dock.append(row,err);inp.focus()})}
+const opt=(v,en,hi,hn,x)=>({v,x,l:{en,hi,hn:hn??en}});
+const GOALOPTS=()=>['loss','gain','muscle','glow'].map(g=>({v:g,l:GOALN[g]}));
+const MEALOPTS=[opt(3,'3 meals','3 भोजन','3 meals'),opt(5,'5 meals (with snacks)','5 भोजन (स्नैक्स के साथ)','5 meals (snacks ke saath)')];
+const greetObj=()=>{const h=new Date().getHours(),i=h<12?0:h<17?1:2,e=['morning','afternoon','evening'][i];
+  return{en:`Good ${e}, {n}.`,hi:`${['सुप्रभात','नमस्कार','शुभ संध्या'][i]}, {n}।`,hn:`Good ${e}, {n}.`}};
+function clearLog(){$('#log').innerHTML='';$('#dock').innerHTML=''}
+
+/* ===== onboarding ===== */
+async function onboard(){
+  go('talk');clearLog();if(!DB.profile)DB.profile={};const P=DB.profile;
+  if(!P.name){
+    await say({hn:'Namaste! Main Jarvis Power hoon, aapka personal diet assistant.\nHello! I am Jarvis Power, your personal diet assistant.'});
+    P.name=await ask({type:'text',q:{hn:'Sabse pehle, aapka naam kya hai?\nFirst, what should I call you?'},ph:{hn:'Naam / Name'}});save()}
+  else await say({hn:`Welcome back, ${P.name}! Setup poora karte hain.\nLet us finish your setup.`});
+  if(!P.gender){P.gender=await ask({type:'choice',q:{hn:`Welcome, ${P.name}! Aap male hain ya female?\nAre you male or female?`},opts:[opt('m','Male / पुरुष'),opt('f','Female / महिला')]});save()}
+  if(!P.lang){P.lang=await ask({type:'choice',q:{hn:'Kis bhasha me baat karein?\nWhich language should we use?'},opts:[opt('hi','हिंदी'),opt('en','English'),opt('hn','Hinglish (Hindi + English)')]});save()}
+  if(!P.perm){
+    const pm=await ask({type:'multi',def:['save','voice','sound'],q:{en:'{n}, I need your permission before I use anything on this device. Choose what I may use. Keep "Save my data" ticked so I remember you.',hi:'{n}, इस डिवाइस पर कुछ भी इस्तेमाल करने से पहले मुझे आपकी अनुमति चाहिए। चुनिए, मैं क्या इस्तेमाल कर सकता हूँ। "डेटा सहेजें" चुना रखें ताकि मैं आपको याद रख सकूँ।',hn:'{n}, is device par kuch bhi use karne se pehle mujhe aapki permission chahiye. Chuniye, main kya use kar sakta hoon. "Data save" tick rakhein taaki main aapko yaad rakh sakun.'},
+      opts:[opt('save','Save my data on this device','मेरा डेटा इसी डिवाइस पर सहेजें','Mera data isi device par save karein'),opt('voice','Jarvis voice (speak replies)','जार्विस की आवाज़ (जवाब बोलकर)','Jarvis ki awaaz (jawab bolkar)'),opt('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects'),opt('mic','Microphone (talk to me)','माइक्रोफ़ोन (मुझसे बात करें)','Microphone (mujhse baat karein)')]});
+    Object.assign(DB.settings,{save:pm.includes('save'),voice:pm.includes('voice'),sound:pm.includes('sound'),mic:pm.includes('mic'),roam:true});
+    P.perm=true;if(!DB.settings.save){try{localStorage.removeItem(KEY)}catch(e){}}save();
+    if(DB.settings.sound)sfx('boot');
+    await say({en:'Understood. I will use only what you allowed.',hi:'समझ गया। मैं सिर्फ़ वही इस्तेमाल करूँगा जिसकी आपने अनुमति दी है।',hn:'Samajh gaya. Main sirf wahi use karunga jiski aapne permission di hai.'});
+    if(DB.settings.voice)speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}))}
+  if(!P.age){P.age=await ask({type:'num',min:12,max:100,q:{en:'How old are you? (years)',hi:'आपकी उम्र कितनी है? (साल)',hn:'Aapki age kitni hai? (saal)'}});save()}
+  if(!P.height){P.height=await ask({type:'num',min:120,max:230,q:{en:'Your height in cm?',hi:'आपकी लंबाई कितनी है? (सेमी)',hn:'Aapki height kitni hai? (cm)'}});save()}
+  if(!P.weight){P.weight=await ask({type:'num',min:25,max:250,q:{en:'Your current weight in kg?',hi:'आपका वज़न कितना है? (किलो)',hn:'Aapka abhi ka weight kitna hai? (kg)'}});P.weight0=P.weight;P.joined=ymd();save()}
+  if(!P.activity){P.activity=await ask({type:'choice',q:{en:'How active are you?',hi:'आप कितने सक्रिय हैं?',hn:'Aap kitne active hain?'},opts:[
+    opt('low','Low (desk job, little walking)','कम (बैठकर काम, कम चलना)','Low (baith ke kaam, kam chalna)'),opt('mod','Moderate (walk or exercise 3-4 days)','मध्यम (हफ्ते में 3-4 दिन वॉक/व्यायाम)','Moderate (hafte me 3-4 din walk/exercise)'),opt('high','High (hard exercise most days)','ज़्यादा (लगभग रोज़ कड़ी कसरत)','High (lagbhag roz hard exercise)')]});save()}
+  if(!P.diet){P.diet=await ask({type:'choice',q:{en:'What do you eat?',hi:'आप क्या खाते हैं?',hn:'Aap kya khate hain?'},opts:[opt('v','Veg','शाकाहारी','Veg'),opt('e','Veg + Egg','शाकाहारी + अंडा','Veg + Egg'),opt('n','Non-veg','नॉन-वेज','Non-veg')]});save()}
+  if(!P.conds){P.conds=(await ask({type:'multi',q:{en:'Any health condition? Choose all that apply.',hi:'कोई स्वास्थ्य समस्या? जो लागू हों सब चुनें।',hn:'Koi health problem? Jo lagu ho sab chunein.'},opts:[
+    opt('none','None','कोई नहीं','Koi nahi',true),opt('sugar','Diabetes / sugar','डायबिटीज़ / शुगर','Diabetes / sugar'),opt('bp','High BP','हाई बीपी','High BP'),opt('acid','Acidity / gas','एसिडिटी / गैस','Acidity / gas'),opt('thyroid','Thyroid','थायरॉइड','Thyroid'),opt('other','Something else','कुछ और','Kuch aur')]})).filter(x=>x!=='none');save()}
+  if(P.allergy==null){P.allergy=(await ask({type:'text',skip:true,q:{en:'Any food allergy, or foods you never eat? (type, or skip)',hi:'कोई एलर्जी या ऐसा खाना जो आप नहीं खाते? (लिखें या छोड़ें)',hn:'Koi food allergy ya aisa khana jo aap nahi khate? (likhein ya skip)'}}))||'';save()}
+  P.done=true;save();
+  await say({en:'Profile saved, {n}. Now choose Daily or Weekly diet.',hi:'प्रोफ़ाइल सहेज ली गई, {n}। अब डेली या वीकली डाइट चुनिए।',hn:'Profile save ho gayi, {n}. Ab Daily ya Weekly diet chuniye.'});
+  applyStatic();orbInit();go('home')}
+
+/* ===== daily ===== */
+async function dailyFlow(){
+  const P=DB.profile,today=ymd(),prev=addDays(today,-1);go('talk');clearLog();
+  await say(greetObj());
+  await say({en:'Let us do your daily check-in.',hi:'चलिए आपका डेली चेक-इन करते हैं।',hn:'Chaliye aapka daily check-in karte hain.'});
+  let bad=false;const py=DB.days[prev];
+  if(py?.plan&&py.adherence==null){py.adherence=await ask({type:'choice',q:{en:"Did you follow yesterday's plan?",hi:'क्या आपने कल का प्लान फ़ॉलो किया?',hn:'Kya aapne kal ka plan follow kiya?'},opts:[opt('full','Yes, fully','हाँ, पूरा','Haan, poora'),opt('part','Partly','थोड़ा-बहुत','Thoda-bahut'),opt('none','No','नहीं','Nahi')]});save();bad=py.adherence==='none'}
+  const health=await ask({type:'choice',q:{en:'How is your health today?',hi:'आज आपकी तबीयत कैसी है?',hn:'Aaj aapki tabiyat kaisi hai?'},opts:[opt('great','Great','बहुत बढ़िया','Great'),opt('ok','Okay','ठीक-ठाक','Okay'),opt('tired','Tired','थका हुआ','Tired'),opt('sick','Unwell (fever, cold, stomach)','तबीयत ख़राब (बुखार, सर्दी, पेट)','Unwell (fever, cold, stomach)')]});
+  const goal=await ask({type:'choice',q:{en:'What is your diet for today? Choose your goal.',hi:'आज की डाइट किस लिए बनानी है? लक्ष्य चुनिए।',hn:'Aaj ki diet kis liye banani hai? Goal chuniye.'},opts:GOALOPTS()});
+  const weight=await ask({type:'num',min:25,max:250,skip:true,q:{en:'Your weight today in kg? (or skip)',hi:'आज आपका वज़न कितना है? (किलो, या छोड़ें)',hn:'Aaj aapka weight kitna hai? (kg, ya skip)'}});
+  const sleepH=await ask({type:'num',min:0,max:16,skip:true,q:{en:'How many hours did you sleep last night?',hi:'कल रात आप कितने घंटे सोए?',hn:'Kal raat aap kitne ghante soye?'}});
+  const water=await ask({type:'num',min:0,max:30,skip:true,q:{en:'How many glasses of water did you drink yesterday?',hi:'कल आपने कितने गिलास पानी पिया?',hn:'Kal aapne kitne glass paani piya?'}});
+  const energy=await ask({type:'choice',q:{en:'Your energy level?',hi:'आपकी ऊर्जा का स्तर?',hn:'Aapki energy level?'},opts:[opt(1,'1 - Very low','1 - बहुत कम','1 - Bahut low'),opt(2,'2 - Low','2 - कम','2 - Low'),opt(3,'3 - Normal','3 - सामान्य','3 - Normal'),opt(4,'4 - Good','4 - अच्छी','4 - Good'),opt(5,'5 - Excellent','5 - शानदार','5 - Excellent')]});
+  const symptoms=await ask({type:'text',skip:true,q:{en:'Any pain or symptom today? (type, or skip)',hi:'आज कोई दर्द या लक्षण? (लिखें या छोड़ें)',hn:'Aaj koi dard ya symptom? (likhein ya skip)'}});
+  const wishes=await ask({type:'text',skip:true,q:{en:'What would you like to eat today? e.g. paneer, rajma, or "anything".',hi:'आज क्या खाना है? जैसे पनीर, राजमा, या "कुछ भी"।',hn:'Aaj kya khana hai? Jaise paneer, rajma, ya "kuch bhi".'}});
+  const meals=await ask({type:'choice',q:{en:'How many meals today?',hi:'आज कितने भोजन?',hn:'Aaj kitne meals?'},opts:MEALOPTS});
+  const rec=DB.days[today]||(DB.days[today]={date:today});
+  Object.assign(rec,{goal,health,weight:weight||null,sleep:sleepH,water,energy,symptoms,wishes,meals});
+  if(weight)P.weight=weight;
+  await say({en:'Building your plan now.',hi:'अब आपका प्लान बना रहा हूँ।',hn:'Ab aapka plan bana raha hoon.'});
+  const o={date:today,goal,weight:weight||P.weight,health,wishes:wishes||'',meals,sleep:sleepH,bad};
+  const tg=targetFor(o),rng=rngOf(hash(today+P.name+goal+(wishes||'')));
+  const pl=genPlan(o,tg,rng,recentIds(today));
+  if(bad)tg.ins.push({en:'Yesterday was off-plan. No problem, today is a fresh start.',hi:'कल प्लान से हटना हुआ। कोई बात नहीं, आज नई शुरुआत है।',hn:'Kal plan se hatna hua. Koi baat nahi, aaj nayi shuruaat hai.'});
+  pl.insights=tg.ins;rec.plan=pl;P.lastGoal=goal;save();
+  await say({en:`Your plan is ready: about ${pl.target} kcal and ${pl.protein} g protein.`,hi:`आपका प्लान तैयार है: लगभग ${pl.target} कैलोरी और ${pl.protein} ग्राम प्रोटीन।`,hn:`Aapka plan ready hai: lagbhag ${pl.target} kcal aur ${pl.protein} g protein.`});
+  sfx('confirm');PV='day';go('plan')}
+
+/* ===== weekly ===== */
+async function weeklyFlow(){
+  const P=DB.profile,today=ymd();go('talk');clearLog();
+  await say(greetObj());
+  await say({en:'Let us plan your whole week.',hi:'चलिए आपका पूरा हफ़्ता प्लान करते हैं।',hn:'Chaliye aapka poora hafta plan karte hain.'});
+  const keys=Object.keys(DB.weeks).filter(k=>k<today).sort(),lastK=keys[keys.length-1],lw=lastK&&DB.weeks[lastK];let bad=false;
+  if(lw&&!lw.feedback){lw.feedback=await ask({type:'choice',q:{en:'How did last week go?',hi:'पिछला हफ़्ता कैसा रहा?',hn:'Pichla hafta kaisa raha?'},opts:[opt('great','Great','बहुत बढ़िया','Great'),opt('ok','Okay','ठीक-ठाक','Okay'),opt('bad','Hard to follow','फ़ॉलो करना मुश्किल रहा','Follow karna mushkil raha')]});bad=lw.feedback==='bad'}
+  else if(lw?.feedback==='bad')bad=true;
+  const goal=await ask({type:'choice',q:{en:'What is this week\'s diet for? Choose your goal.',hi:'इस हफ़्ते की डाइट किस लिए बनानी है? लक्ष्य चुनिए।',hn:'Is hafte ki diet kis liye banani hai? Goal chuniye.'},opts:GOALOPTS()});
+  const weight=await ask({type:'num',min:25,max:250,skip:true,q:{en:'Your weight now in kg? (or skip)',hi:'अभी आपका वज़न कितना है? (किलो, या छोड़ें)',hn:'Abhi aapka weight kitna hai? (kg, ya skip)'}});
+  const act=await ask({type:'choice',q:{en:'How many days will you exercise this week?',hi:'इस हफ़्ते कितने दिन कसरत करेंगे?',hn:'Is hafte kitne din exercise karenge?'},opts:[opt('low','0-2 days','0-2 दिन','0-2 din'),opt('mod','3-4 days','3-4 दिन','3-4 din'),opt('high','5-7 days','5-7 दिन','5-7 din')]});
+  const symptoms=await ask({type:'text',skip:true,q:{en:'Any health issue this week? (type, or skip)',hi:'इस हफ़्ते कोई स्वास्थ्य समस्या? (लिखें या छोड़ें)',hn:'Is hafte koi health issue? (likhein ya skip)'}});
+  const wishes=await ask({type:'text',skip:true,q:{en:'Foods you want this week? e.g. paneer, rajma, chicken.',hi:'इस हफ़्ते कौन सा खाना चाहिए? जैसे पनीर, राजमा, चिकन।',hn:'Is hafte kaun sa khana chahiye? Jaise paneer, rajma, chicken.'}});
+  const avoid=await ask({type:'text',skip:true,q:{en:'Foods to avoid this week? (type, or skip)',hi:'इस हफ़्ते कौन सा खाना नहीं चाहिए? (लिखें या छोड़ें)',hn:'Is hafte kaun sa khana nahi chahiye? (likhein ya skip)'}});
+  const meals=await ask({type:'choice',q:{en:'How many meals per day?',hi:'रोज़ कितने भोजन?',hn:'Roz kitne meals?'},opts:MEALOPTS});
+  await say({en:'Building your 7-day plan.',hi:'आपका 7 दिन का प्लान बना रहा हूँ।',hn:'Aapka 7 din ka plan bana raha hoon.'});
+  if(weight)P.weight=weight;
+  const w={start:today,goal,weight:weight||null,activity:act,symptoms,wishes,avoid,meals,days:[],feedback:null};
+  const used=[...recentIds(today)];let insights=null;
+  for(let i=0;i<7;i++){const date=addDays(today,i);
+    const o={date,goal,weight:weight||P.weight,activity:act,health:(symptoms&&i===0)?'ok':'ok',wishes:wishes||'',avoid:avoid||'',meals,bad};
+    const tg=targetFor(o);if(!insights)insights=tg.ins;
+    const pl=genPlan(o,tg,rngOf(hash(date+P.name+goal)),used.slice(-6));pl.meals.forEach(m=>used.push(m.id));pl.insights=i===0?insights:[];w.days.push(pl)}
+  if(bad)insights.push({en:'Last week was hard, so this week favours simpler, lighter meals.',hi:'पिछला हफ़्ता मुश्किल रहा, इसलिए इस हफ़्ते सरल और हल्के भोजन रखे हैं।',hn:'Pichla hafta mushkil raha, isliye is hafte simple aur halke meals rakhe hain.'});
+  if(symptoms)w.days[0].notes.splice(1,0,NT.other);
+  DB.weeks[today]=w;P.lastGoal=goal;save();
+  const avg=Math.round(w.days.reduce((a,d)=>a+d.target,0)/7);
+  await say({en:`Your week is ready: about ${avg} kcal per day.`,hi:`आपका हफ़्ता तैयार है: रोज़ लगभग ${avg} कैलोरी।`,hn:`Aapka hafta ready hai: roz lagbhag ${avg} kcal.`});
+  sfx('confirm');PV='week';WSEL=0;go('plan')}
+
+/* ===== views ===== */
+let view='home',PV='day',WSEL=0;
+function go(v){view=v;$$('.view').forEach(e=>e.hidden=e.id!=='v-'+v);$$('.nav button').forEach(b=>b.classList.toggle('act',b.dataset.v===v));
+  ({home:renderHome,plan:renderPlan,rec:renderRec,set:renderSet}[v]||(()=>{}))()}
+function applyStatic(){$$('[data-k]').forEach(e=>e.textContent=T(LBL[e.dataset.k]));document.documentElement.lang=lang()==='hi'?'hi':'en';
+  $('#oin').placeholder=T({en:'Ask Jarvis...',hi:'जार्विस से पूछें...',hn:'Jarvis se poochein...'});
+  $('#osend').textContent=T({en:'Send',hi:'भेजें',hn:'Send'});$('#omic').hidden=false}
+const todayPlan=()=>planFor(ymd());
+function streak(){let n=0,d=ymd();if(!DB.days[d])d=addDays(d,-1);while(DB.days[d]){n++;d=addDays(d,-1)}return n}
+const TIPS=[{en:'Protein at every meal keeps hunger steady.',hi:'हर भोजन में प्रोटीन रखने से भूख संतुलित रहती है।',hn:'Har meal me protein rakhne se bhookh balanced rehti hai.'},
+ {en:'Drink a glass of water before each meal.',hi:'हर भोजन से पहले एक गिलास पानी पिएँ।',hn:'Har meal se pehle ek glass paani piyein.'},
+ {en:'Weigh yourself at the same time each morning.',hi:'रोज़ सुबह एक ही समय पर वज़न करें।',hn:'Roz subah ek hi time par weight karein.'},
+ {en:'A 10-minute walk after dinner helps digestion.',hi:'रात के खाने के बाद 10 मिनट टहलना पाचन में मदद करता है।',hn:'Dinner ke baad 10 minute walk digestion me madad karti hai.'},
+ {en:'Sleep 7-8 hours. Poor sleep raises hunger.',hi:'7-8 घंटे सोएँ। कम नींद से भूख बढ़ती है।',hn:'7-8 ghante soyein. Kam neend se bhookh badhti hai.'}];
+function renderHome(){const P=DB.profile,tp=todayPlan(),ws=weightSeries(),lw=ws.length?ws[ws.length-1].w:P.weight,doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5);
+  const goalK=P.lastGoal?T(GOALN[P.lastGoal]):'-';
+  $('#v-home').innerHTML=`<div class="wrap">
+  <div class="card"><div class="eyebrow">${esc(T({en:'Jarvis online',hi:'जार्विस ऑनलाइन',hn:'Jarvis online'}))}</div><h2>${esc(T(greetObj()))}</h2><p class="muted" style="margin-top:6px">${esc(T(TIPS[doy%TIPS.length]))}</p></div>
+  <div class="grid2">
+   <button class="big" data-act="daily"><b>${esc(T({en:'Daily diet',hi:'डेली डाइट',hn:'Daily diet'}))}</b><span>${esc(T({en:'Answer today\'s questions and get today\'s plan.',hi:'आज के सवालों के जवाब दें और आज का प्लान पाएँ।',hn:'Aaj ke sawalon ke jawab dein aur aaj ka plan paayein.'}))}</span></button>
+   <button class="big" data-act="weekly"><b>${esc(T({en:'Weekly diet',hi:'वीकली डाइट',hn:'Weekly diet'}))}</b><span>${esc(T({en:'Plan all 7 days at once.',hi:'पूरे 7 दिन एक साथ प्लान करें।',hn:'Poore 7 din ek saath plan karein.'}))}</span></button></div>
+  <div class="stats">
+   <div class="stat"><b>${lw}</b><span>${esc(T({en:'Weight (kg)',hi:'वज़न (किलो)',hn:'Weight (kg)'}))}</span></div>
+   <div class="stat"><b>${tp?tp.target:'-'}</b><span>${esc(T({en:'Today kcal',hi:'आज की कैलोरी',hn:'Aaj ki kcal'}))}</span></div>
+   <div class="stat"><b>${streak()}</b><span>${esc(T({en:'Check-in streak',hi:'चेक-इन स्ट्रीक',hn:'Check-in streak'}))}</span></div></div>
+  <div class="card"><div class="row" style="border:0;padding:0"><span class="muted">${esc(T({en:'Last goal',hi:'पिछला लक्ष्य',hn:'Last goal'}))}</span><b>${esc(goalK)}</b></div></div>
+  ${tp?`<button class="btn" data-act="go:plan">${esc(T({en:'View today\'s plan',hi:'आज का प्लान देखें',hn:'Aaj ka plan dekhein'}))}</button>`:''}</div>`}
+
+function planHTML(pl){if(!pl)return'';
+  const meals=pl.meals.map(m=>{const d=DBY[m.id],q=fq(m.qty);return`<li class="meal"><span class="tm">${m.time}</span><div class="mb"><em>${esc(T(SLN[m.slot]))}</em><b>${esc(dishName(d))}</b><small>${q} ${esc(T(UN[d.u]))} · ${m.k} kcal · ${m.p} g ${esc(T({en:'protein',hi:'प्रोटीन',hn:'protein'}))}</small></div></li>`}).join('');
+  const ins=(pl.insights||[]).map(i=>`<li>${esc(T(i))}</li>`).join('');
+  return`<div class="card"><div class="eyebrow">${esc(fmtDate(pl.date,true))} · ${esc(T(GOALN[pl.goal]))}</div>
+   <div class="stats" style="margin:10px 0"><div class="stat"><b>${pl.target}</b><span>${esc(T({en:'Target kcal',hi:'लक्ष्य कैलोरी',hn:'Target kcal'}))}</span></div><div class="stat"><b>${pl.protein} g</b><span>${esc(T({en:'Protein goal',hi:'प्रोटीन लक्ष्य',hn:'Protein goal'}))}</span></div><div class="stat"><b>${pl.water} L</b><span>${esc(T({en:'Water',hi:'पानी',hn:'Water'}))}</span></div></div>
+   <ul class="meals">${meals}</ul>
+   <p class="muted" style="margin-top:8px">${esc(T({en:'Planned total',hi:'योजना का कुल',hn:'Planned total'}))}: ${pl.total} kcal · ${pl.got} g ${esc(T({en:'protein',hi:'प्रोटीन',hn:'protein'}))}</p></div>
+   ${ins?`<div class="card"><h3>${esc(T({en:'Jarvis insights',hi:'जार्विस इनसाइट्स',hn:'Jarvis insights'}))}</h3><ul class="pts">${ins}</ul></div>`:''}
+   <div class="card"><h3>${esc(T({en:'Notes',hi:'ध्यान रखें',hn:'Dhyan rakhein'}))}</h3><ul class="pts">${pl.notes.map(n=>`<li>${esc(T(n))}</li>`).join('')}</ul></div>`}
+function fq(v){const w=Math.floor(v),h=v-w>=.5;return((w?w:'')+(h?'½':''))||'½'}
+function curWeek(){const k=Object.keys(DB.weeks).sort(),t=ymd();let c=null;k.forEach(s=>{if(s<=t)c=s});return DB.weeks[c||k[k.length-1]]}
+function renderPlan(){const v=$('#v-plan'),tp=planFor(ymd()),w=curWeek();
+  let body='';
+  if(PV==='day'){body=tp?planHTML(tp):emptyPlan()}
+  else if(!w){body=emptyPlan()}
+  else{WSEL=clamp(WSEL,0,6);const chips=w.days.map((d,i)=>`<button class="chip" aria-pressed="${i===WSEL}" data-act="wd:${i}">${esc(fmtDate(d.date))}</button>`).join('');
+    const avg=Math.round(w.days.reduce((a,d)=>a+d.target,0)/7);
+    body=`<div class="card"><div class="eyebrow">${esc(T({en:'Weekly plan',hi:'साप्ताहिक प्लान',hn:'Weekly plan'}))}</div><p class="muted">${esc(T({en:`Average ${avg} kcal per day`,hi:`औसत ${avg} कैलोरी प्रतिदिन`,hn:`Average ${avg} kcal per din`}))}</p></div><div class="seg">${chips}</div>${planHTML(w.days[WSEL])}`}
+  v.innerHTML=`<div class="wrap"><div class="seg"><button class="chip" aria-pressed="${PV==='day'}" data-act="pv:day">${esc(T({en:'Today',hi:'आज',hn:'Aaj'}))}</button><button class="chip" aria-pressed="${PV==='week'}" data-act="pv:week">${esc(T({en:'This week',hi:'यह हफ़्ता',hn:'Is hafte'}))}</button></div>${body}</div>`}
+function emptyPlan(){return`<div class="card"><h2>${esc(T({en:'No plan yet',hi:'अभी कोई प्लान नहीं',hn:'Abhi koi plan nahi'}))}</h2><p class="muted" style="margin:8px 0 12px">${esc(T({en:'Start a check-in and Jarvis will build one.',hi:'चेक-इन शुरू करें, जार्विस प्लान बना देगा।',hn:'Check-in shuru karein, Jarvis plan bana dega.'}))}</p><div class="seg"><button class="btn pri" data-act="daily">${esc(T({en:'Daily diet',hi:'डेली डाइट',hn:'Daily diet'}))}</button><button class="btn" data-act="weekly">${esc(T({en:'Weekly diet',hi:'वीकली डाइट',hn:'Weekly diet'}))}</button></div></div>`}
+
+function chartSVG(pts){if(pts.length<2)return`<p class="muted">${esc(T({en:'Add your weight in two or more check-ins to see the trend.',hi:'ट्रेंड देखने के लिए दो या अधिक चेक-इन में वज़न लिखें।',hn:'Trend dekhne ke liye do ya zyada check-in me weight likhein.'}))}</p>`;
+  const W=340,H=160,L=38,R=12,Tp=12,B=26,ws=pts.map(p=>p.w);let lo=Math.min(...ws),hi=Math.max(...ws);if(hi-lo<1){lo-=.5;hi+=.5}lo=Math.floor(lo);hi=Math.ceil(hi);
+  const t0=new Date(pts[0].d).getTime(),t1=new Date(pts[pts.length-1].d).getTime()||1,sx=t=>L+(t1===t0?0:(t-t0)/(t1-t0))*(W-L-R),sy=w=>Tp+(hi-w)/(hi-lo)*(H-Tp-B);
+  const line=pts.map((p,i)=>(i?'L':'M')+sx(new Date(p.d).getTime()).toFixed(1)+' '+sy(p.w).toFixed(1)).join(' ');
+  const mid=(lo+hi)/2;
+  return`<div class="tblw"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:300px" role="img" aria-label="weight chart">
+   ${[lo,mid,hi].map(v=>`<line class="gr" x1="${L}" x2="${W-R}" y1="${sy(v)}" y2="${sy(v)}"/><text x="${L-6}" y="${sy(v)+4}" text-anchor="end">${v}</text>`).join('')}
+   <path class="ln" d="${line}"/>${pts.map(p=>`<circle class="dot" cx="${sx(new Date(p.d).getTime()).toFixed(1)}" cy="${sy(p.w).toFixed(1)}" r="3.5"/>`).join('')}
+   <text x="${L}" y="${H-6}">${esc(fmtDate(pts[0].d))}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${esc(fmtDate(pts[pts.length-1].d))}</text></svg></div>`}
+function renderRec(){const rows=Object.values(DB.days).sort((a,b)=>a.date<b.date?1:-1);
+  const adh={full:{en:'Yes',hi:'हाँ',hn:'Haan'},part:{en:'Partly',hi:'थोड़ा',hn:'Thoda'},none:{en:'No',hi:'नहीं',hn:'Nahi'}};
+  const th=['Date,तारीख,Date','Goal,लक्ष्य,Goal','kg,किलो,kg','kcal,कैलोरी,kcal','Energy,ऊर्जा,Energy','Followed,फ़ॉलो,Followed'].map(s=>{const[a,b,c]=s.split(',');return`<th>${esc(T({en:a,hi:b,hn:c}))}</th>`}).join('');
+  const tb=rows.map(r=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.goal?T(GOALN[r.goal]):'-')}</td><td>${r.weight??'-'}</td><td>${r.plan?.target??'-'}</td><td>${r.energy??'-'}</td><td>${r.adherence?esc(T(adh[r.adherence])):'-'}</td></tr>`).join('');
+  const ws=Object.values(DB.weeks).sort((a,b)=>a.start<b.start?1:-1).map(w=>`<div class="row"><span>${esc(fmtDate(w.start))}</span><span>${esc(T(GOALN[w.goal]))}</span><span class="muted">${w.feedback?esc(T({great:{en:'Great',hi:'बढ़िया',hn:'Great'},ok:{en:'Okay',hi:'ठीक',hn:'Okay'},bad:{en:'Hard',hi:'मुश्किल',hn:'Mushkil'}}[w.feedback])):'-'}</span></div>`).join('');
+  $('#v-rec').innerHTML=`<div class="wrap"><div class="card"><h3>${esc(T({en:'Weight trend',hi:'वज़न का रुझान',hn:'Weight trend'}))}</h3>${chartSVG(weightSeries())}</div>
+   <div class="card"><h3>${esc(T({en:'Daily records',hi:'डेली रिकॉर्ड',hn:'Daily records'}))}</h3>${rows.length?`<div class="tblw"><table><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table></div>`:`<p class="muted">${esc(T({en:'No check-ins yet.',hi:'अभी कोई चेक-इन नहीं।',hn:'Abhi koi check-in nahi.'}))}</p>`}</div>
+   ${ws?`<div class="card"><h3>${esc(T({en:'Weeks',hi:'हफ़्ते',hn:'Weeks'}))}</h3>${ws}</div>`:''}</div>`}
+
+function b64e(s){const u=new TextEncoder().encode(s);let o='';for(let i=0;i<u.length;i+=8192)o+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(o)}
+function b64d(s){const b=atob(s.trim()),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new TextDecoder().decode(u)}
+function renderSet(){const P=DB.profile,S=DB.settings;
+  const tg=(k,en,hi,hn)=>`<div class="row"><span>${esc(T({en,hi,hn}))}</span><button class="chip" aria-pressed="${!!S[k]}" data-act="tog:${k}">${S[k]?'ON':'OFF'}</button></div>`;
+  const lg=['hi','en','hn'].map(l=>`<button class="chip" aria-pressed="${P.lang===l}" data-act="lang:${l}">${{hi:'हिंदी',en:'English',hn:'Hinglish'}[l]}</button>`).join('');
+  const gd=[['m',{en:'Male',hi:'पुरुष',hn:'Male'}],['f',{en:'Female',hi:'महिला',hn:'Female'}]].map(([g,l])=>`<button class="chip" aria-pressed="${P.gender===g}" data-act="gender:${g}">${esc(T(l))}</button>`).join('');
+  $('#v-set').innerHTML=`<div class="wrap">
+  ${!storeOK||S.save===false?`<div class="card" style="border-color:var(--gold)"><p>${esc(T({en:'Your data is not being saved on this device. It will be lost when you close the app.',hi:'आपका डेटा इस डिवाइस पर सहेजा नहीं जा रहा। ऐप बंद करने पर मिट जाएगा।',hn:'Aapka data is device par save nahi ho raha. App band karne par mit jayega.'}))}</p></div>`:''}
+  <div class="card"><h3>${esc(T({en:'Profile',hi:'प्रोफ़ाइल',hn:'Profile'}))}</h3>
+   <div class="inrow" style="margin-bottom:10px"><input type="text" id="sname" value="${esc(P.name)}" maxlength="30" aria-label="name"><button class="btn" data-act="savename">${esc(T({en:'Save name',hi:'नाम सहेजें',hn:'Name save'}))}</button></div>
+   <div class="seg" style="margin-bottom:10px">${gd}</div><div class="seg">${lg}</div></div>
+  <div class="card"><h3>${esc(T({en:'Permissions',hi:'अनुमतियाँ',hn:'Permissions'}))}</h3>
+   ${tg('save','Save data on this device','डेटा इसी डिवाइस पर सहेजें','Data isi device par save karein')}${tg('voice','Jarvis voice','जार्विस की आवाज़','Jarvis ki awaaz')}${tg('sound','Sound effects','साउंड इफ़ेक्ट्स','Sound effects')}${tg('mic','Microphone','माइक्रोफ़ोन','Microphone')}${tg('roam','Jarvis moves around on its own','जार्विस अपने आप घूमे','Jarvis apne aap ghoome')}
+   <div class="row" style="border:0"><span>${esc(T({en:'Jarvis orb',hi:'जार्विस ऑर्ब',hn:'Jarvis orb'}))}</span><button class="chip" data-act="${DB.orb.hidden?'orbshow':'orbhide'}">${esc(DB.orb.hidden?T({en:'Show',hi:'दिखाएँ',hn:'Show'}):T({en:'Hide',hi:'छुपाएँ',hn:'Hide'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Jarvis voice',hi:'जार्विस की आवाज़',hn:'Jarvis ki awaaz'}))}</h3><p class="muted" style="margin-bottom:8px">${esc(T({en:'Auto picks a voice that matches your gender. You can choose a voice you like better.',hi:'ऑटो में आपके जेंडर से मेल खाती आवाज़ चुनी जाती है। आप अपनी पसंद की आवाज़ भी चुन सकते हैं।',hn:'Auto me aapke gender se match karti awaaz chuni jaati hai. Aap apni pasand ki awaaz bhi chun sakte hain.'}))}</p><div class="inrow"><select id="vsel" aria-label="voice"><option value="">Auto</option>${voiceOpts()}</select><button class="chip" data-act="vtest">${esc(T({en:'Test',hi:'सुनें',hn:'Test'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Backup',hi:'बैकअप',hn:'Backup'}))}</h3><p class="muted" style="margin-bottom:8px">${esc(T({en:'Your data stays only in this browser. Copy the backup code to move it to another device.',hi:'आपका डेटा सिर्फ़ इसी ब्राउज़र में रहता है। दूसरे डिवाइस पर ले जाने के लिए बैकअप कोड कॉपी करें।',hn:'Aapka data sirf isi browser me rehta hai. Dusre device par le jaane ke liye backup code copy karein.'}))}</p>
+   <div class="seg" style="margin-bottom:8px"><button class="btn" data-act="bkcopy">${esc(T({en:'Copy backup code',hi:'बैकअप कोड कॉपी करें',hn:'Backup code copy karein'}))}</button></div>
+   <textarea id="bkin" placeholder="${esc(T({en:'Paste a backup code here',hi:'यहाँ बैकअप कोड पेस्ट करें',hn:'Yahan backup code paste karein'}))}"></textarea>
+   <div class="seg" style="margin-top:8px"><button class="btn" data-act="bkrestore">${esc(T({en:'Restore',hi:'रीस्टोर',hn:'Restore'}))}</button></div></div>
+  <div class="card"><h3>${esc(T({en:'Erase everything',hi:'सब मिटाएँ',hn:'Sab mitayein'}))}</h3><div class="seg" id="erase"><button class="btn bad" data-act="erase1">${esc(T({en:'Erase all my data',hi:'मेरा सारा डेटा मिटाएँ',hn:'Mera sara data mitayein'}))}</button></div></div></div>`}
+
+function voiceOpts(){const S=DB.settings;return(window.speechSynthesis?speechSynthesis.getVoices():[]).filter(v=>/^(hi|en)/i.test(v.lang)).map(v=>`<option value="${esc(v.voiceURI)}"${S.voiceURI===v.voiceURI?' selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}
+
+/* ===== Jarvis orb ===== */
+const orb=$('#orb');let panelOpen=false,lastTouch=0,dragging=false;
+function orbPos(x,y){const m=8,maxx=innerWidth-62-m,maxy=innerHeight-120-m;orb.style.left=clamp(x,m,maxx)+'px';orb.style.top=clamp(y,m+60,maxy)+'px'}
+function orbInit(){orb.innerHTML=avatar(DB.profile?.gender,120);$('#pav').innerHTML=avatar(DB.profile?.gender,40,'head');orb.hidden=!!DB.orb.hidden||!DB.profile?.done;$('#otab').hidden=!DB.orb.hidden||!DB.profile?.done;
+  orbPos(DB.orb.x??innerWidth-96,DB.orb.y??innerHeight-190)}
+let dsx,dsy,dox,doy,moved;
+orb.addEventListener('pointerdown',e=>{dragging=true;moved=false;dsx=e.clientX;dsy=e.clientY;const r=orb.getBoundingClientRect();dox=r.left;doy=r.top;orb.classList.add('drag');orb.setPointerCapture(e.pointerId)});
+orb.addEventListener('pointermove',e=>{if(!dragging)return;if(Math.abs(e.clientX-dsx)+Math.abs(e.clientY-dsy)>6)moved=true;if(moved)orbPos(dox+e.clientX-dsx,doy+e.clientY-dsy)});
+orb.addEventListener('pointerup',()=>{dragging=false;orb.classList.remove('drag');lastTouch=Date.now();
+  if(moved){const r=orb.getBoundingClientRect();DB.orb.x=r.left;DB.orb.y=r.top;save()}else togglePanel()});
+setInterval(()=>{if(!DB.settings.roam||DB.orb.hidden||panelOpen||dragging||!DB.profile?.done||Date.now()-lastTouch<9000||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  orbPos(Math.random()*(innerWidth-90),70+Math.random()*(innerHeight-210))},22000);
+addEventListener('resize',()=>{if(!orb.hidden)orbPos(parseFloat(orb.style.left)||0,parseFloat(orb.style.top)||0)});
+function togglePanel(force){panelOpen=force??!panelOpen;$('#panel').hidden=!panelOpen;sfx('open');
+  if(panelOpen&&!$('#olog').children.length){const t=T({en:'Yes, {n}? Ask me anything about food and health, or say "daily" or "weekly".',hi:'जी, {n}? खाने और सेहत के बारे में कुछ भी पूछिए, या "डेली" / "वीकली" कहिए।',hn:'Ji, {n}? Khane aur health ke baare me kuch bhi poochiye, ya "daily" / "weekly" boliye.'});bubble('j',t,$('#olog'));speak(t,true)}
+  if(panelOpen)$('#oin').focus()}
+function hideOrb(){DB.orb.hidden=true;orb.hidden=true;$('#otab').hidden=false;togglePanel(false);save();if(view==='set')renderSet()}
+function showOrb(){DB.orb.hidden=false;orb.hidden=false;$('#otab').hidden=true;save();if(view==='set')renderSet()}
+
+/* ===== Jarvis answers ===== */
+function suggestDish(){const h=new Date().getHours(),s=h<10?'b':h<12?'s1':h<15?'l':h<18?'s2':'d',c=ctxOf({});
+  const pool=D.filter(d=>d.s===s&&allowed(d,c,false));const d=pool[Math.floor(Math.random()*pool.length)]||D.find(x=>x.s===s);return d}
+const R={
+ greet:{en:'Hello, {n}! How can I help?',hi:'नमस्ते, {n}! मैं कैसे मदद करूँ?',hn:'Namaste, {n}! Main kaise madad karun?'},
+ who:{en:'I am Jarvis Power, your diet assistant inside Jarvis Power Diet.',hi:'मैं जार्विस पावर हूँ, जार्विस पावर डाइट में आपका डाइट असिस्टेंट।',hn:'Main Jarvis Power hoon, Jarvis Power Diet me aapka diet assistant.'},
+ name:{en:'Your name is {name}.',hi:'आपका नाम {name} है।',hn:'Aapka naam {name} hai.'},
+ protein:{en:'Aim for about 1.4 to 1.9 g of protein per kg of body weight. Dal, paneer, eggs, soya, curd and chicken are good sources.',hi:'शरीर के वज़न के हिसाब से लगभग 1.4 से 1.9 ग्राम प्रोटीन प्रति किलो लें। दाल, पनीर, अंडा, सोया, दही और चिकन अच्छे स्रोत हैं।',hn:'Body weight ke hisaab se lagbhag 1.4 se 1.9 g protein per kg lein. Dal, paneer, egg, soya, curd aur chicken achhe source hain.'},
+ water:{en:'Drink about 35 ml of water per kg of body weight each day, a little more in summer or after exercise.',hi:'रोज़ शरीर के वज़न के हिसाब से लगभग 35 मिलीलीटर प्रति किलो पानी पिएँ, गर्मी या कसरत के बाद थोड़ा ज़्यादा।',hn:'Roz body weight ke hisaab se lagbhag 35 ml per kg paani piyein, garmi ya exercise ke baad thoda zyada.'},
+ loss:{en:'For weight loss: a small calorie deficit, protein at every meal, a daily walk and 7-8 hours of sleep. Avoid crash diets.',hi:'वज़न घटाने के लिए: थोड़ी कम कैलोरी, हर भोजन में प्रोटीन, रोज़ टहलना और 7-8 घंटे की नींद। क्रैश डाइट से बचें।',hn:'Weight loss ke liye: thodi kam calories, har meal me protein, roz walk aur 7-8 ghante ki neend. Crash diet se bachein.'},
+ gain:{en:'For weight gain: eat a little above your needs, do not skip meals, add nuts, milk, banana and paneer.',hi:'वज़न बढ़ाने के लिए: ज़रूरत से थोड़ा ज़्यादा खाएँ, भोजन न छोड़ें, मेवे, दूध, केला और पनीर जोड़ें।',hn:'Weight gain ke liye: zaroorat se thoda zyada khayein, meal skip na karein, nuts, doodh, kela aur paneer add karein.'},
+ muscle:{en:'For muscle: 1.6 to 2 g protein per kg, strength training 3-4 days a week, and enough sleep.',hi:'मसल के लिए: 1.6 से 2 ग्राम प्रोटीन प्रति किलो, हफ़्ते में 3-4 दिन स्ट्रेंथ ट्रेनिंग और पूरी नींद।',hn:'Muscle ke liye: 1.6 se 2 g protein per kg, hafte me 3-4 din strength training aur poori neend.'},
+ glow:{en:'For a healthy, fuller face and body: steady calories, healthy fats like nuts, fruit, enough water and good sleep.',hi:'सेहतमंद भरे चेहरे और शरीर के लिए: नियमित कैलोरी, मेवे जैसे अच्छे फैट, फल, भरपूर पानी और अच्छी नींद।',hn:'Healthy bhare hue face aur body ke liye: regular calories, nuts jaise healthy fats, fruit, bharpoor paani aur achhi neend.'},
+ sleep:{en:'Sleep 7-8 hours. Poor sleep increases hunger and slows progress.',hi:'7-8 घंटे सोएँ। कम नींद से भूख बढ़ती है और प्रगति धीमी होती है।',hn:'7-8 ghante soyein. Kam neend se bhookh badhti hai aur progress slow hoti hai.'},
+ time:()=>{const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});return{en:`It is ${t}.`,hi:`अभी ${t} हुए हैं।`,hn:`Abhi ${t} hue hain.`}},
+ thanks:{en:'Always at your service, {n}.',hi:'हमेशा आपकी सेवा में, {n}।',hn:'Hamesha aapki seva me, {n}.'},
+ dflt:{en:'I did not get that. Try asking about protein, water, weight loss, weight gain, muscle, sleep, or "what should I eat". You can also say "daily" or "weekly".',hi:'मैं समझ नहीं पाया। प्रोटीन, पानी, वज़न घटाना, वज़न बढ़ाना, मसल, नींद या "क्या खाऊँ" पूछिए। "डेली" या "वीकली" भी कह सकते हैं।',hn:'Main samajh nahi paya. Protein, paani, weight loss, weight gain, muscle, neend ya "kya khaun" poochiye. "Daily" ya "weekly" bhi bol sakte hain.'}};
+function appReply(t){const m=r=>r.test(t);
+  if(m(/hide|chup|chhup|band kar|hatao|छुप|हटाओ/)){hideOrb();return null}
+  if(m(/weekly|week|hafte|haftey|वीकली|साप्ताहिक|हफ़्ते|हफ्ते/)){go('talk');runFlow(weeklyFlow);return{en:'Starting the weekly plan.',hi:'वीकली प्लान शुरू कर रहा हूँ।',hn:'Weekly plan shuru kar raha hoon.'}}
+  if(m(/daily|aaj ka|डेली|आज का/)){go('talk');runFlow(dailyFlow);return{en:'Starting your daily check-in.',hi:'डेली चेक-इन शुरू कर रहा हूँ।',hn:'Daily check-in shuru kar raha hoon.'}}
+  if(m(/show.*plan|plan dikh|plan dekh|प्लान दिखा|प्लान देख/)){go('plan');return{en:'Here is your plan.',hi:'यह रहा आपका प्लान।',hn:'Ye raha aapka plan.'}}
+  if(m(/kya kha|what.*eat|hungry|bhookh|भूख|क्या खा/)){const d=suggestDish();return{en:`Try: ${d.n} (about ${d.k} kcal).`,hi:`यह आज़माइए: ${d.h} (लगभग ${d.k} कैलोरी)।`,hn:`Ye try karein: ${d.n} (lagbhag ${d.k} kcal).`}}
+  if(m(/who are you|tum kaun|aap kaun|कौन हो|कौन हैं/))return R.who;
+  if(m(/(mera|my) (naam|name)|मेरा नाम/))return R.name;
+  if(m(/protein|प्रोटीन/))return R.protein;
+  if(m(/water|pani|paani|पानी/))return R.water;
+  if(m(/muscle|gym|bodybuild|मसल/))return R.muscle;
+  if(m(/face|chehra|glow|skin|चेहरा|त्वचा|bhara|भरा/))return R.glow;
+  if(m(/gain|badhana|vajan badh|weight badh|dubla|वज़न बढ़|वजन बढ़|दुबला/))return R.gain;
+  if(m(/loss|lose|patla|kam karna|vajan kam|fat|mota|motapa|वज़न घट|वजन घट|मोटा/))return R.loss;
+  if(m(/sleep|neend|नींद/))return R.sleep;
+  if(m(/time|samay|baje|समय/))return R.time();
+  if(m(/thank|shukriya|dhanyavaad|धन्यवाद|शुक्रिया/))return R.thanks;
+  if(t.length<25&&m(/\b(hi|hello|hey|hii)\b|namaste|नमस्ते/))return R.greet;
+  return undefined}
+/* ===== general answers: math, date, weather, Wikipedia, small talk ===== */
+async function jget(u){const c=new AbortController(),to=setTimeout(()=>c.abort(),9000);try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error(r.status);return await r.json()}finally{clearTimeout(to)}}
+const NET={en:'I could not reach the internet for that. Please check your connection and ask again.',hi:'इसके लिए मैं इंटरनेट तक नहीं पहुँच पाया। कनेक्शन देखकर फिर पूछिए।',hn:'Iske liye main internet tak nahi pahunch paya. Connection check karke phir poochiye.'};
+const NOTFOUND={en:'I could not find a clear answer for that. Try asking with a simpler name or topic.',hi:'मुझे इसका साफ़ जवाब नहीं मिला। सरल नाम या विषय के साथ पूछिए।',hn:'Mujhe iska saaf jawab nahi mila. Simple naam ya topic ke saath poochiye.'};
+function calcAns(t){const rest=t.replace(/plus|minus|times|multiply|multiplied|divided|divide|into|jodo|ghatao|gunaa|guna|bhaag|calculate|calc|kitna|kitne|hota|hoga|hai|equals|equal|what|is|batao|answer|solve|add|subtract|by|\?|=|[0-9+\-*/().,%x×÷\s]|[ऀ-ॿ]+/g,'');if(rest.length)return null;
+  let e=t.replace(/,/g,'').replace(/\b(plus|jodo|add)\b|जोड़/g,'+').replace(/\b(minus|ghatao|subtract)\b|घटा/g,'-').replace(/\b(times|multiply|multiplied by|gunaa|guna|into)\b|×|\bx\b|गुणा/g,'*').replace(/\b(divided by|divide|bhaag|by)\b|÷|भाग/g,'/');
+  e=e.replace(/[^0-9+\-*/().\s]/g,' ').replace(/\s+/g,' ').trim();if(!/\d/.test(e)||!/[+*/]|\d\s*-\s*\d/.test(e)||!/^[\d+\-*/().\s]+$/.test(e)||e.length>60)return null;
+  try{const v=Function('"use strict";return ('+e+')')();if(typeof v!=='number'||!isFinite(v))return null;const s=`${e} = ${+v.toFixed(6)}`;return{en:s,hi:s,hn:s}}catch(x){return null}}
+function dateAns(){const d=new Date(),s=d.toLocaleDateString(lang()==='hi'?'hi-IN':'en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});return{en:`Today is ${s}.`,hi:`आज ${s} है।`,hn:`Aaj ${s} hai.`}}
+const JOKES=[{en:'Why did the banana go to the doctor? It was not peeling well.',hi:'केला डॉक्टर के पास क्यों गया? क्योंकि उसकी तबीयत छिल रही थी।',hn:'Kela doctor ke paas kyun gaya? Kyunki uski tabiyat "peel" nahi ho rahi thi.'},
+ {en:'I told my diet I would start tomorrow. It has been waiting patiently for years.',hi:'मैंने डाइट से कहा कल से शुरू करूँगा। वह सालों से सब्र से इंतज़ार कर रही है।',hn:'Maine diet se kaha kal se shuru karunga. Wo saalon se sabr se intezaar kar rahi hai.'},
+ {en:'Why do dals never win arguments? They always get cooked in the end.',hi:'दाल बहस क्यों नहीं जीतती? क्योंकि आख़िर में गल ही जाती है।',hn:'Dal behes kyun nahi jeetti? Kyunki aakhir me gal hi jaati hai.'}];
+const WX=c=>c===0?{en:'clear sky',hi:'साफ़ आसमान',hn:'saaf aasmaan'}:c<=3?{en:'partly cloudy',hi:'आंशिक बादल',hn:'thode badal'}:c<=48?{en:'foggy',hi:'कोहरा',hn:'kohra'}:c<=57?{en:'light drizzle',hi:'हल्की बूँदाबाँदी',hn:'halki boondabandi'}:c<=67?{en:'rain',hi:'बारिश',hn:'baarish'}:c<=77?{en:'snow',hi:'बर्फ़बारी',hn:'barfbaari'}:c<=82?{en:'rain showers',hi:'बौछारें',hn:'baucharein'}:{en:'thunderstorm',hi:'आंधी-तूफ़ान',hn:'aandhi-toofan'};
+async function weatherAns(raw){const c=raw.toLowerCase().replace(/weather|mausam|मौसम|temperature|tapman|तापमान|kaisa|kaise|kya|hai|today|aaj|आज|how|is|the|what|in|mein|में|\bme\b|\bka\b|\bki\b|का|की|\?/g,' ').replace(/\s+/g,' ').trim();
+  if(!c)return{en:'Which city? Ask like "weather in Mumbai".',hi:'कौन सा शहर? ऐसे पूछिए: "मुंबई का मौसम"।',hn:'Kaun sa shehar? Aise poochiye: "Mumbai ka mausam".'};
+  const g=await jget(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(c)}&count=1`),r=g.results&&g.results[0];
+  if(!r)return{en:`I could not find the city "${c}".`,hi:`मुझे शहर "${c}" नहीं मिला।`,hn:`Mujhe shehar "${c}" nahi mila.`};
+  const f=await jget(`https://api.open-meteo.com/v1/forecast?latitude=${r.latitude}&longitude=${r.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`),k=f.current,w=WX(k.weather_code);
+  return{en:`${r.name}: ${k.temperature_2m}°C, ${w.en}, humidity ${k.relative_humidity_2m}%, wind ${k.wind_speed_10m} km/h.`,hi:`${r.name}: ${k.temperature_2m}°C, ${w.hi}, नमी ${k.relative_humidity_2m}%, हवा ${k.wind_speed_10m} किमी/घंटा।`,hn:`${r.name}: ${k.temperature_2m}°C, ${w.hn}, humidity ${k.relative_humidity_2m}%, hawa ${k.wind_speed_10m} km/h.`}}
+const FILLER=/\b(please|plz|tell me|batao|bataiye|bataao|mujhe|muje|about|ke baare mein|ke bare me|what is|what's|who is|who was|who are|what are|kya hai|kya hota hai|kya hoti hai|kaun hai|kaun tha|kaun thi|kise kehte hain|meaning of|meaning|explain|define|the|an?|of|is|are|hai|hain|ka|ki|ke)\b|[?!.]|क्या है|कौन है|कौन था|के बारे में|बताओ|बताइए|मुझे/gi;
+async function wikiAns(raw){const q=raw.replace(FILLER,' ').replace(/\s+/g,' ').trim();if(q.length<2)return NOTFOUND;
+  const dev=/[ऀ-ॿ]/.test(q),order=(dev||lang()==='hi')?['hi','en']:['en'];
+  try{for(const wl of order){const s=await jget(`https://${wl}.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=1&format=json&origin=*`),title=s[1]&&s[1][0];if(!title)continue;
+      const j=await jget(`https://${wl}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`),ex=(j.extract||'').trim();if(!ex)continue;
+      const sent=ex.match(/[^.!?।]+[.!?।]+/g)||[ex];let out='';for(const x of sent){if(out&&(out+x).length>380)break;out+=x}
+      return out.trim()+'\n('+T({en:'Source: Wikipedia. It may not cover the latest news.',hi:'स्रोत: विकिपीडिया। इसमें ताज़ा ख़बरें न हों।',hn:'Source: Wikipedia. Isme latest news na ho sakti hai.'})+')'}
+    return NOTFOUND}catch(e){return NET}}
+async function reply(raw){const t=raw.toLowerCase(),m=r=>r.test(t);
+  const a=appReply(t);if(a!==undefined)return a;
+  const c=calcAns(t);if(c)return c;
+  if(m(/\b(date|tarikh|which day|what day)\b|तारीख|कौन सा दिन/))return dateAns();
+  if(m(/weather|mausam|मौसम|temperature|tapman|तापमान/)){try{return await weatherAns(raw)}catch(e){return NET}}
+  if(m(/joke|chutkula|चुटकुला|hasao|हँसा/))return JOKES[Math.floor(Math.random()*JOKES.length)];
+  if(m(/kaise ho|how are you|कैसे हो|kya haal|क्या हाल/))return{en:'I am running at full power, {n}. How are you?',hi:'मैं पूरी ऊर्जा में हूँ, {n}। आप कैसे हैं?',hn:'Main full power me hoon, {n}. Aap kaise hain?'};
+  if(m(/what can you do|kya kar sakte|क्या कर सकते|help|madad/))return{en:'I plan your daily and weekly diet, track your progress, and answer questions: health, math, weather, date and time, and general topics when the internet is on.',hi:'मैं आपकी डेली और वीकली डाइट बनाता हूँ, प्रगति याद रखता हूँ, और सवालों के जवाब देता हूँ: सेहत, गणित, मौसम, तारीख़-समय और इंटरनेट चालू होने पर सामान्य विषय।',hn:'Main aapki daily aur weekly diet banata hoon, progress yaad rakhta hoon, aur sawalon ke jawab deta hoon: health, math, mausam, date-time aur internet on ho to general topics.'};
+  return await wikiAns(raw)}
+async function osend(){const i=$('#oin'),t=i.value.trim();if(!t)return;i.value='';bubble('u',t,$('#olog'));const th=bubble('j','...',$('#olog'));let r;try{r=await reply(t)}catch(e){r=R.dflt}
+  th.remove();if(r){const s=typeof r==='string'?r:T(r);bubble('j',s,$('#olog'));speak(s,true)}}
+$('#oin').addEventListener('keydown',e=>{if(e.key==='Enter')osend()});
+$('#omic').addEventListener('click',()=>doMic(t=>{$('#oin').value=t;osend()},$('#omic')));
+
+/* ===== actions ===== */
+async function toggleSetting(k){const S=DB.settings;
+  if(!S[k]){const q={save:{en:'Allow Jarvis to save your data on this device?',hi:'क्या जार्विस आपका डेटा इस डिवाइस पर सहेज सकता है?',hn:'Kya Jarvis aapka data is device par save kar sakta hai?'},voice:{en:'Allow Jarvis to speak replies aloud?',hi:'क्या जार्विस जवाब बोलकर सुना सकता है?',hn:'Kya Jarvis jawab bolkar suna sakta hai?'},sound:{en:'Allow Jarvis sound effects?',hi:'क्या जार्विस साउंड इफ़ेक्ट्स चला सकता है?',hn:'Kya Jarvis sound effects chala sakta hai?'},mic:{en:'Allow Jarvis to try using your microphone?',hi:'क्या जार्विस आपका माइक्रोफ़ोन इस्तेमाल करने की कोशिश कर सकता है?',hn:'Kya Jarvis aapka microphone use karne ki koshish kar sakta hai?'},roam:{en:'Allow Jarvis to move around the screen on its own?',hi:'क्या जार्विस स्क्रीन पर अपने आप घूम सकता है?',hn:'Kya Jarvis screen par apne aap ghoom sakta hai?'}}[k];
+    if(!await askPermission(q))return;S[k]=true;if(k==='sound')sfx('confirm');if(k==='voice')speak(T({en:'Voice online.',hi:'आवाज़ चालू है।',hn:'Voice online.'}),true)}
+  else S[k]=false;
+  save();applyStatic();renderSet()}
+function act(a,b){const[k,v]=a.split(':');
+  switch(k){
+   case'activate':return activate();
+   case'go':return go(v);
+   case'daily':return runFlow(dailyFlow);
+   case'weekly':return runFlow(weeklyFlow);
+   case'pv':PV=v;return renderPlan();
+   case'wd':WSEL=+v;return renderPlan();
+   case'tog':return toggleSetting(v);
+   case'lang':DB.profile.lang=v;save();applyStatic();return renderSet();
+   case'gender':DB.profile.gender=v;save();orbInit();return renderSet();
+   case'savename':{const n=$('#sname').value.trim().slice(0,30);if(n){DB.profile.name=n;save();toast(T({en:'Name saved.',hi:'नाम सहेजा गया।',hn:'Name save ho gaya.'}))}return}
+   case'vtest':if(!DB.settings.voice){toast(T({en:'Turn Voice ON first.',hi:'पहले आवाज़ ON करें।',hn:'Pehle Voice ON karein.'}));return}speak(T({en:'Hello {n}. This is how I sound.',hi:'नमस्ते {n}। मेरी आवाज़ ऐसी है।',hn:'Hello {n}. Meri awaaz aisi hai.'}),true);return;
+   case'orbshow':return showOrb();
+   case'orbhide':return hideOrb();
+   case'orbclose':return togglePanel(false);
+   case'osend':return osend();
+   case'bkcopy':{const code=b64e(JSON.stringify(DB));const ta=$('#bkin');ta.value=code;ta.select();
+     (navigator.clipboard?.writeText(code)||Promise.reject()).then(()=>toast(T({en:'Backup code copied.',hi:'बैकअप कोड कॉपी हुआ।',hn:'Backup code copy ho gaya.'}))).catch(()=>toast(T({en:'Select the code above and copy it.',hi:'ऊपर का कोड चुनकर कॉपी करें।',hn:'Upar ka code select karke copy karein.'})));return}
+   case'bkrestore':{try{const o=JSON.parse(b64d($('#bkin').value));if(!o.profile||!o.days||!o.settings)throw 0;DB=o;save();applyStatic();orbInit();go('home');toast(T({en:'Backup restored.',hi:'बैकअप रीस्टोर हुआ।',hn:'Backup restore ho gaya.'}))}catch(e){sfx('err');toast(T({en:'That backup code is not valid.',hi:'यह बैकअप कोड सही नहीं है।',hn:'Ye backup code sahi nahi hai.'}))}return}
+   case'erase1':$('#erase').innerHTML=`<button class="btn bad" data-act="erase2">${esc(T({en:'Yes, erase everything',hi:'हाँ, सब मिटाएँ',hn:'Haan, sab mitayein'}))}</button><button class="btn" data-act="go:set">${esc(T({en:'Cancel',hi:'रद्द करें',hn:'Cancel'}))}</button>`;return;
+   case'erase2':{abortFlow();try{localStorage.removeItem(KEY)}catch(e){}DB=fresh();memDB=null;$('#olog').innerHTML='';applyStatic();orbInit();boot();return}}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)act(b.dataset.act,b)});
+
+/* ===== boot ===== */
+function boot(){$('#boot').hidden=false;$('#bootbtn').textContent=DB.profile?.done?T({en:'Activate',hi:'सक्रिय करें',hn:'Activate'}):'Activate'}
+async function activate(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}ac();sfx('boot');$('#boot').hidden=true;
+  if(DB.profile?.done){applyStatic();orbInit();go('home');
+    const t=T({en:'Welcome back, {n}. Systems online. What shall we plan today?',hi:'वापसी पर स्वागत है, {n}। सिस्टम चालू हैं। आज क्या प्लान करें?',hn:'Welcome back, {n}. Systems online hain. Aaj kya plan karein?'});
+    speak(t,true);toast(t)}
+  else{applyStatic();runFlow(onboard)}}
+$('#bootlogo').innerHTML=reactor(150);$('#barlogo').innerHTML=reactor(28);
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{if(view==='set')renderSet()};document.addEventListener('change',e=>{if(e.target.id==='vsel'){DB.settings.voiceURI=e.target.value||null;save()}});
+applyStatic();orbInit();if(DB.profile?.done)go("home");boot();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
